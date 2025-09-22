@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "@/trpc/react";
+import { UserMenu } from "@/components/auth/user-menu";
 
 export const metadata: Metadata = {
 	title: "Create T3 App",
@@ -22,7 +23,30 @@ export default function RootLayout({
 	return (
 		<html lang="en" className={`${geist.variable}`}>
 			<body>
-				<TRPCReactProvider>{children}</TRPCReactProvider>
+				<TRPCReactProvider>
+					<nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+						<div className="container flex h-16 items-center">
+							<div className="mr-4 hidden md:flex">
+								<a href="/" className="mr-6 flex items-center space-x-2">
+									<span className="hidden font-bold sm:inline-block">
+										Flashcards
+									</span>
+								</a>
+							</div>
+							<div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+								<div className="w-full flex-1 md:w-auto md:flex-none">
+									<a href="/" className="flex items-center space-x-2 md:hidden">
+										<span className="font-bold">Flashcards</span>
+									</a>
+								</div>
+								<nav className="flex items-center">
+									<UserMenu />
+								</nav>
+							</div>
+						</div>
+					</nav>
+					{children}
+				</TRPCReactProvider>
 			</body>
 		</html>
 	);
