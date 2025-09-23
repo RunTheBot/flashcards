@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 export function ReviewClient() {
 	const [index, setIndex] = useState(0);
 	const [isCardFlipped, setIsCardFlipped] = useState(false);
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const utils = api.useUtils();
 	const {
 		data: queue,
@@ -28,21 +29,41 @@ export function ReviewClient() {
 		[queue, index],
 	);
 
+	// Log the current card when it changes
+	useEffect(() => {
+		if (current) {
+			console.log('Current card loaded:', {
+				id: current.id,
+				front: current.front,
+				back: current.back,
+				deckId: current.deckId,
+				createdAt: current.createdAt,
+				updatedAt: current.updatedAt
+			});
+		}
+	}, [current]);
+
 	const handleAnswer = useCallback(
 		async (difficulty: 1 | 2 | 3 | 4 | 5) => {
-			if (!current) return;
+			if (!current || isSubmitting) return;
+
+			setIsSubmitting(true);
 			
 			// First flip back to front
 			setIsCardFlipped(false);
 			
 			// Small delay to allow flip animation to complete
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise((resolve) => setTimeout(resolve, 100));
 			
-			// Then submit review and move to next card
+			// Submit review; queue refetch will remove current card
 			await submit.mutateAsync({ cardId: current.id, difficulty });
-			setIndex((i) => i + 1);
+
+			// Do not manually increment index; the refetched queue excludes the answered card
+			// which effectively advances to the next item at the same index.
+
+			setIsSubmitting(false);
 		},
-		[current, submit],
+		[current, isSubmitting, submit],
 	);
 
 	useEffect(() => {
@@ -95,17 +116,18 @@ export function ReviewClient() {
 					<Button
 						variant="destructive"
 						onClick={() => handleAnswer(1)}
+						disabled={isSubmitting}
 						title="1"
 					>
 						Again
 					</Button>
-					<Button variant="secondary" onClick={() => handleAnswer(2)} title="2">
+					<Button variant="secondary" onClick={() => handleAnswer(2)} title="2" disabled={isSubmitting}>
 						Hard
 					</Button>
-					<Button onClick={() => handleAnswer(3)} title="3">
+					<Button onClick={() => handleAnswer(3)} title="3" disabled={isSubmitting}>
 						Good
 					</Button>
-					<Button variant="outline" onClick={() => handleAnswer(4)} title="4">
+					<Button variant="outline" onClick={() => handleAnswer(4)} title="4" disabled={isSubmitting}>
 						Easy
 					</Button>
 				</div>
