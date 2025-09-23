@@ -20,6 +20,16 @@ const navigationItems = [
 		href: "/dashboard/decks",
 		id: "decks",
 	},
+	{
+		label: "Study",
+		href: "/dashboard/study",
+		id: "study",
+	},
+	{
+		label: "Review",
+		href: "/dashboard/review",
+		id: "review",
+	},
 ];
 
 export function Header() {

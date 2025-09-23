@@ -203,7 +203,10 @@ export const flashcardsRouter = createTRPCRouter({
 	getDailyQueue: publicProcedure
 		.input(
 			z
-				.object({ limit: z.number().min(1).max(100).default(20) })
+				.object({ 
+					limit: z.number().min(1).max(100).default(20),
+					deckId: z.string().uuid().optional()
+				})
 				.default({ limit: 20 }),
 		)
 		.query(async ({ ctx, input }) => {
@@ -211,6 +214,14 @@ export const flashcardsRouter = createTRPCRouter({
 			if (!session) return [];
 
 			const now = new Date();
+
+			// Build where conditions
+			const whereConditions = [lte(cards.due, now)];
+			
+			// If deckId is provided, add it to the where conditions
+			if (input.deckId) {
+				whereConditions.push(eq(cards.deckId, input.deckId));
+			}
 
 			// Cards in user's decks that are due for review
 			const rows = await ctx.db
@@ -222,7 +233,7 @@ export const flashcardsRouter = createTRPCRouter({
 					decks,
 					and(eq(decks.id, cards.deckId), eq(decks.userId, session.user.id)),
 				)
-				.where(lte(cards.due, now))
+				.where(and(...whereConditions))
 				.orderBy(cards.due)
 				.limit(input.limit);
 

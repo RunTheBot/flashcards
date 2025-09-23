@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/trpc/react";
-import { Trash2 } from "lucide-react";
+import { BookOpen, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -109,7 +110,15 @@ export function DecksClient() {
 
 				<Card>
 					<CardHeader>
-						<CardTitle>Your Decks</CardTitle>
+						<CardTitle className="flex items-center justify-between">
+							Your Decks
+							<Button variant="outline" size="sm" asChild>
+								<Link href="/dashboard/study">
+									<BookOpen className="mr-2 h-4 w-4" />
+									Study All
+								</Link>
+							</Button>
+						</CardTitle>
 					</CardHeader>
 					<CardContent>
 						{isLoading ? (
@@ -137,7 +146,17 @@ export function DecksClient() {
 													</div>
 												)}
 											</button>
-											<div className="mt-2 flex justify-end">
+											<div className="mt-2 flex justify-between">
+												<Button
+													variant="outline"
+													size="sm"
+													asChild
+												>
+													<Link href={`/dashboard/study?deckId=${d.id}`}>
+														<BookOpen className="mr-2 h-4 w-4" />
+														Study
+													</Link>
+												</Button>
 												<Button
 													variant="ghost"
 													size="sm"
