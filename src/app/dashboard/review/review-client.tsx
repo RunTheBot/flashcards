@@ -7,7 +7,6 @@ import { api } from "@/trpc/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function ReviewClient() {
-	const [index, setIndex] = useState(0);
 	const [isCardFlipped, setIsCardFlipped] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const utils = api.useUtils();
@@ -18,16 +17,12 @@ export function ReviewClient() {
 	} = api.flashcards.getDailyQueue.useQuery({ limit: 20 });
 	const submit = api.flashcards.submitReview.useMutation({
 		onSuccess: async () => {
-			// Invalidate and refetch queue so next due card can appear
+			// Invalidate queue so next due card can appear
 			await utils.flashcards.getDailyQueue.invalidate();
-			await refetch();
 		},
 	});
 
-	const current = useMemo(
-		() => (queue?.[index] ? queue[index] : undefined),
-		[queue, index],
-	);
+	const current = useMemo(() => (queue?.[0] ? queue[0] : undefined), [queue]);
 
 	// Log the current card when it changes
 	useEffect(() => {
@@ -48,20 +43,22 @@ export function ReviewClient() {
 			if (!current || isSubmitting) return;
 
 			setIsSubmitting(true);
-			
+
 			// First flip back to front
 			setIsCardFlipped(false);
-			
+
 			// Small delay to allow flip animation to complete
 			await new Promise((resolve) => setTimeout(resolve, 100));
-			
-			// Submit review; queue refetch will remove current card
-			await submit.mutateAsync({ cardId: current.id, difficulty });
 
-			// Do not manually increment index; the refetched queue excludes the answered card
-			// which effectively advances to the next item at the same index.
-
-			setIsSubmitting(false);
+			try {
+				// Submit review; queue refetch will remove current card
+				await submit.mutateAsync({ cardId: current.id, difficulty });
+			} catch (error) {
+				console.error("Error submitting review:", error);
+				// Optionally show an error message to the user
+			} finally {
+				setIsSubmitting(false);
+			}
 		},
 		[current, isSubmitting, submit],
 	);
@@ -83,7 +80,7 @@ export function ReviewClient() {
 
 	if (isLoading) return <div className="p-6">Loading...</div>;
 
-	if (!queue || queue.length === 0 || index >= queue.length)
+	if (!queue || queue.length === 0)
 		return (
 			<Card className="p-6 text-center">
 				<p className="text-muted-foreground">
