@@ -113,6 +113,25 @@ export const flashcardsRouter = createTRPCRouter({
       return row;
     }),
 
+  deleteCard: publicProcedure
+    .input(z.object({ cardId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = await auth.api.getSession({ headers: ctx.headers });
+      if (!session) throw new Error("Unauthorized");
+      // Ensure card belongs to a deck owned by the user
+      const cardRow = await ctx.db.query.cards.findFirst({ where: eq(cards.id, input.cardId) });
+      if (!cardRow) throw new Error("Card not found");
+      
+      const deckRow = await ctx.db.query.decks.findFirst({
+        where: and(eq(decks.id, cardRow.deckId), eq(decks.userId, session.user.id)),
+      });
+      if (!deckRow) throw new Error("Forbidden");
+      
+      // Delete the card (reviews will be cascade deleted due to foreign key constraint)
+      await ctx.db.delete(cards).where(eq(cards.id, input.cardId));
+      return { success: true };
+    }),
+
   // Review queue: due cards for the user (from their decks)
   getDailyQueue: publicProcedure
     .input(z.object({ limit: z.number().min(1).max(100).default(20) }).default({ limit: 20 }))

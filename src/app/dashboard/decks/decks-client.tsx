@@ -37,6 +37,7 @@ export function DecksClient() {
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [deckToDelete, setDeckToDelete] = useState<{id: string, name: string} | null>(null);
 
   const generateFlashcards = api.flashcards.generateFlashcards.useMutation({
     onSuccess: async (result) => {
@@ -72,6 +73,24 @@ export function DecksClient() {
     } catch (error) {
       console.error('Error in handleAITopicSelect:', error);
       toast.error("Failed to create deck");
+    }
+  };
+
+  const handleDeleteDeck = (deck: {id: string, name: string}, event: React.MouseEvent) => {
+    // Check if Ctrl+Shift+Click for instant delete
+    if (event.ctrlKey && event.shiftKey) {
+      event.preventDefault();
+      deleteDeck.mutate({ deckId: deck.id });
+    } else {
+      // Regular click - show confirmation dialog
+      setDeckToDelete(deck);
+    }
+  };
+
+  const confirmDeleteDeck = () => {
+    if (deckToDelete) {
+      deleteDeck.mutate({ deckId: deckToDelete.id });
+      setDeckToDelete(null);
     }
   };
 
@@ -128,31 +147,15 @@ export function DecksClient() {
                       )}
                     </button>
                     <div className="flex justify-end mt-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete Deck</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete "{d.name}"? This action cannot be undone and will also delete all cards in this deck.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                            <Button variant="outline">Cancel</Button>
-                            <Button
-                              variant="destructive"
-                              onClick={() => deleteDeck.mutate({ deckId: d.id })}
-                              disabled={deleteDeck.isPending}
-                            >
-                              {deleteDeck.isPending ? "Deleting..." : "Delete"}
-                            </Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-destructive hover:text-destructive"
+                        onClick={(e) => handleDeleteDeck({id: d.id, name: d.name}, e)}
+                        title="Click to delete (Ctrl+Shift+Click for instant delete)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </li>
@@ -171,6 +174,29 @@ export function DecksClient() {
           </Card>
         )}
       </div>
+      
+      {/* Deck delete confirmation dialog */}
+      <Dialog open={!!deckToDelete} onOpenChange={() => setDeckToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Deck</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "{deckToDelete?.name}"? This action cannot be undone and will also delete all cards in this deck.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeckToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteDeck}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -199,11 +225,22 @@ function DeckDetail({ deckId }: { deckId: string }) {
     },
   });
 
+  const deleteCard = api.flashcards.deleteCard.useMutation({
+    onSuccess: async () => {
+      await utils.flashcards.getCards.invalidate({ deckId });
+      toast.success("Card deleted successfully!");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete card: " + error.message);
+    },
+  });
+
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const [editFront, setEditFront] = useState("");
   const [editBack, setEditBack] = useState("");
+  const [cardToDelete, setCardToDelete] = useState<{id: string, front: string} | null>(null);
 
   const canAdd = front.trim().length > 0 && back.trim().length > 0;
   const canUpdate = editFront.trim().length > 0 && editBack.trim().length > 0;
@@ -226,6 +263,24 @@ function DeckDetail({ deckId }: { deckId: string }) {
       setEditingCard(null);
       setEditFront("");
       setEditBack("");
+    }
+  };
+
+  const handleDeleteCard = (card: {id: string, front: string}, event: React.MouseEvent) => {
+    // Check if Ctrl+Shift+Click for instant delete
+    if (event.ctrlKey && event.shiftKey) {
+      event.preventDefault();
+      deleteCard.mutate({ cardId: card.id });
+    } else {
+      // Regular click - show confirmation dialog
+      setCardToDelete(card);
+    }
+  };
+
+  const confirmDeleteCard = () => {
+    if (cardToDelete) {
+      deleteCard.mutate({ cardId: cardToDelete.id });
+      setCardToDelete(null);
     }
   };
 
@@ -310,6 +365,15 @@ function DeckDetail({ deckId }: { deckId: string }) {
                       >
                         Cancel
                       </Button>
+                      <Button
+                        onClick={(e) => handleDeleteCard({id: c.id, front: c.front}, e)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        title="Click to delete (Ctrl+Shift+Click for instant delete)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -324,14 +388,25 @@ function DeckDetail({ deckId }: { deckId: string }) {
                         <div className="text-sm">{c.back}</div>
                       </div>
                     </div>
-                    <Button
-                      onClick={() => startEditing(c)}
-                      variant="outline"
-                      size="sm"
-                      className="w-fit"
-                    >
-                      Edit
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => startEditing(c)}
+                        variant="outline"
+                        size="sm"
+                        className="w-fit"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        onClick={(e) => handleDeleteCard({id: c.id, front: c.front}, e)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        title="Click to delete (Ctrl+Shift+Click for instant delete)"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </li>
@@ -339,6 +414,32 @@ function DeckDetail({ deckId }: { deckId: string }) {
           </ul>
         )}
       </CardContent>
+      
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!cardToDelete} onOpenChange={() => setCardToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Card</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this card? This action cannot be undone.
+              <br />
+              <br />
+              <strong>Card:</strong> {cardToDelete?.front}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCardToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteCard}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
