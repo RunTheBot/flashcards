@@ -1,122 +1,126 @@
 "use client";
 
-import { useState } from "react";
-import { signUp } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { signUp } from "@/lib/auth-client";
+import { useState } from "react";
 import { OAuthSignIn } from "./oauth-sign-in";
 
 export function SignUpForm() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setIsLoading(true);
+		setError("");
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
+		if (password !== confirmPassword) {
+			setError("Passwords do not match");
+			setIsLoading(false);
+			return;
+		}
 
-    try {
-      const result = await signUp.email({
-        name,
-        email,
-        password,
-      });
+		try {
+			const result = await signUp.email({
+				name,
+				email,
+				password,
+			});
 
-      if (result.error) {
-        setError(result.error.message || "Sign up failed");
-      } else {
-        // Redirect or handle successful sign up
-        window.location.href = "/dashboard";
-      }
-    } catch (err) {
-      setError("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+			if (result.error) {
+				setError(result.error.message || "Sign up failed");
+			} else {
+				// Redirect or handle successful sign up
+				window.location.href = "/dashboard";
+			}
+		} catch (err) {
+			setError("An unexpected error occurred");
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
-  return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>
-          Enter your information to create a new account
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
+	return (
+		<Card className="w-full max-w-md">
+			<CardHeader>
+				<CardTitle>Create Account</CardTitle>
+				<CardDescription>
+					Enter your information to create a new account
+				</CardDescription>
+			</CardHeader>
+			<CardContent className="flex flex-col gap-4">
+				<form onSubmit={handleSubmit} className="flex flex-col gap-4">
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="name">Name</Label>
+						<Input
+							id="name"
+							type="text"
+							placeholder="Enter your full name"
+							value={name}
+							onChange={(e) => setName(e.target.value)}
+							required
+						/>
+					</div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Create a password (min 8 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="email">Email</Label>
+						<Input
+							id="email"
+							type="email"
+							placeholder="Enter your email"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							required
+						/>
+					</div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="password">Password</Label>
+						<Input
+							id="password"
+							type="password"
+							placeholder="Create a password (min 8 characters)"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							required
+							minLength={8}
+						/>
+					</div>
 
-          {error && (
-            <div className="text-sm text-destructive">{error}</div>
-          )}
+					<div className="flex flex-col gap-2">
+						<Label htmlFor="confirmPassword">Confirm Password</Label>
+						<Input
+							id="confirmPassword"
+							type="password"
+							placeholder="Confirm your password"
+							value={confirmPassword}
+							onChange={(e) => setConfirmPassword(e.target.value)}
+							required
+							minLength={8}
+						/>
+					</div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "Creating account..." : "Create Account"}
-          </Button>
-        </form>
-        <OAuthSignIn />
-      </CardContent>
-    </Card>
-  );
+					{error && <div className="text-destructive text-sm">{error}</div>}
+
+					<Button type="submit" className="w-full" disabled={isLoading}>
+						{isLoading ? "Creating account..." : "Create Account"}
+					</Button>
+				</form>
+				<OAuthSignIn />
+			</CardContent>
+		</Card>
+	);
 }

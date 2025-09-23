@@ -116,36 +116,37 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+	* {
+		@apply border-border outline-ring/50;
 	}
-  html, body {
-    @apply bg-background text-foreground;
-    height: 100%;
-    overflow-x: hidden;
+	html,
+	body {
+		@apply bg-background text-foreground;
+		height: 100%;
+		overflow-x: hidden;
 	}
-  
-  /* Account for fixed header and prevent horizontal scrolling */
-  body {
-    max-width: 100vw;
-    padding-top: 4rem; /* 64px header height */
-  }
+
+	/* Account for fixed header and prevent horizontal scrolling */
+	body {
+		max-width: 100vw;
+		padding-top: 4rem; /* 64px header height */
+	}
 }
 
 @layer utilities {
-  .perspective-1000 {
-    perspective: 1000px;
-  }
+	.perspective-1000 {
+		perspective: 1000px;
+	}
 
-  .transform-style-preserve-3d {
-    transform-style: preserve-3d;
-  }
+	.transform-style-preserve-3d {
+		transform-style: preserve-3d;
+	}
 
-  .backface-hidden {
-    backface-visibility: hidden;
-  }
+	.backface-hidden {
+		backface-visibility: hidden;
+	}
 
-  .rotate-y-180 {
-    transform: rotateY(180deg);
-  }
+	.rotate-y-180 {
+		transform: rotateY(180deg);
+	}
 }

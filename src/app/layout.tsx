@@ -1,11 +1,11 @@
 import "@/styles/globals.css";
 
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
 
-import { TRPCReactProvider } from "@/trpc/react";
 import { Header } from "@/components/header";
+import { TRPCReactProvider } from "@/trpc/react";
 
 export const metadata: Metadata = {
 	title: "Create T3 App",

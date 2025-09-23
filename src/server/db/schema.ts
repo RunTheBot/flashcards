@@ -2,13 +2,13 @@
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
 import { sql } from "drizzle-orm";
-import { 
-  index, 
-  pgTableCreator, 
-  text, 
-  timestamp, 
-  boolean, 
-  integer 
+import {
+	boolean,
+	index,
+	integer,
+	pgTableCreator,
+	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -21,54 +21,67 @@ export const createTable = pgTableCreator((name) => `flashcards_${name}`);
 
 // Better Auth Tables
 export const user = createTable("user", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("emailVerified").notNull().default(false),
-  image: text("image"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	name: text("name").notNull(),
+	email: text("email").notNull().unique(),
+	emailVerified: boolean("emailVerified").notNull().default(false),
+	image: text("image"),
+	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const session = createTable("session", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  expiresAt: timestamp("expiresAt").notNull(),
-  token: text("token").notNull().unique(),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-  ipAddress: text("ipAddress"),
-  userAgent: text("userAgent"),
-  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	expiresAt: timestamp("expiresAt").notNull(),
+	token: text("token").notNull().unique(),
+	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	ipAddress: text("ipAddress"),
+	userAgent: text("userAgent"),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
 });
 
 export const account = createTable("account", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  accountId: text("accountId").notNull(),
-  providerId: text("providerId").notNull(),
-  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
-  accessToken: text("accessToken"),
-  refreshToken: text("refreshToken"),
-  idToken: text("idToken"),
-  accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
-  refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
-  scope: text("scope"),
-  password: text("password"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	accountId: text("accountId").notNull(),
+	providerId: text("providerId").notNull(),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	accessToken: text("accessToken"),
+	refreshToken: text("refreshToken"),
+	idToken: text("idToken"),
+	accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
+	refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
+	scope: text("scope"),
+	password: text("password"),
+	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
-export const verification = createTable("verification", 
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: timestamp("expiresAt").notNull(),
-    createdAt: timestamp("createdAt").notNull().defaultNow(),
-    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-  },
-  (table) => ({
-    identifierIdx: index("verification_identifier_idx").on(table.identifier),
-  })
+export const verification = createTable(
+	"verification",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => crypto.randomUUID()),
+		identifier: text("identifier").notNull(),
+		value: text("value").notNull(),
+		expiresAt: timestamp("expiresAt").notNull(),
+		createdAt: timestamp("createdAt").notNull().defaultNow(),
+		updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	},
+	(table) => ({
+		identifierIdx: index("verification_identifier_idx").on(table.identifier),
+	}),
 );
 
 // Application Tables
@@ -89,28 +102,42 @@ export const posts = createTable(
 
 // Flashcard Tables
 export const decks = createTable("deck", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  description: text("description"),
-  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	name: text("name").notNull(),
+	description: text("description"),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const cards = createTable("card", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  front: text("front").notNull(),
-  back: text("back").notNull(),
-  deckId: text("deckId").notNull().references(() => decks.id, { onDelete: "cascade" }),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	front: text("front").notNull(),
+	back: text("back").notNull(),
+	deckId: text("deckId")
+		.notNull()
+		.references(() => decks.id, { onDelete: "cascade" }),
+	createdAt: timestamp("createdAt").notNull().defaultNow(),
+	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
 export const cardReviews = createTable("cardReview", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  cardId: text("cardId").notNull().references(() => cards.id, { onDelete: "cascade" }),
-  userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
-  difficulty: integer("difficulty").notNull(), // 1-5 scale
-  reviewedAt: timestamp("reviewedAt").notNull().defaultNow(),
-  nextReviewAt: timestamp("nextReviewAt").notNull(),
+	id: text("id")
+		.primaryKey()
+		.$defaultFn(() => crypto.randomUUID()),
+	cardId: text("cardId")
+		.notNull()
+		.references(() => cards.id, { onDelete: "cascade" }),
+	userId: text("userId")
+		.notNull()
+		.references(() => user.id, { onDelete: "cascade" }),
+	difficulty: integer("difficulty").notNull(), // 1-5 scale
+	reviewedAt: timestamp("reviewedAt").notNull().defaultNow(),
+	nextReviewAt: timestamp("nextReviewAt").notNull(),
 });

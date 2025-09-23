@@ -25,7 +25,10 @@ export const env = createEnv({
 	 * `NEXT_PUBLIC_`.
 	 */
 	client: {
-		NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url().default("http://localhost:3000"),
+		NEXT_PUBLIC_BETTER_AUTH_URL: z
+			.string()
+			.url()
+			.default("http://localhost:3000"),
 	},
 
 	/**
