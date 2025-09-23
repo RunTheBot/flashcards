@@ -11,6 +11,7 @@ export const auth = betterAuth({
 	baseURL: env.BETTER_AUTH_URL,
 	emailAndPassword: {
 		enabled: false,
+		disableSignUp: true,
 	},
 	socialProviders: {
 		...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET
@@ -29,6 +30,7 @@ export const auth = betterAuth({
 					},
 				}
 			: {}),
+			disableSignUp: true,
 	},
 	session: {
 		expiresIn: 60 * 60 * 24 * 7, // 7 days
