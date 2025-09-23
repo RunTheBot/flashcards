@@ -1,9 +1,5 @@
 "use client";
 
-import {
-	AIFlashcardGenerator,
-	AIFlashcardGeneratorCard,
-} from "@/components/ai-flashcard-generator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +9,6 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,49 +48,7 @@ export function DecksClient() {
 		name: string;
 	} | null>(null);
 
-	const generateFlashcards = api.flashcards.generateFlashcards.useMutation({
-		onSuccess: async (result) => {
-			console.log("AI generation successful:", result);
-			await utils.flashcards.getCards.invalidate();
-			toast.success(
-				`Generated ${result.cardsGenerated} flashcards successfully!`,
-			);
-		},
-		onError: (error) => {
-			console.error("AI generation failed:", error);
-			toast.error(`Failed to generate flashcards: ${error.message}`);
-		},
-	});
 
-	const handleAITopicSelect = async (topic: string) => {
-		// Create a new deck for the AI-generated topic and immediately generate cards
-		try {
-			console.log("Creating deck for topic:", topic);
-			const result = await createDeck.mutateAsync({
-				name: `${topic} - AI Generated`,
-				description: `AI-generated flashcards about ${topic}`,
-			});
-			if (result) {
-				console.log("Deck created successfully:", result.id);
-				setSelectedDeckId(result.id);
-				// Immediately generate flashcards for the new deck
-				console.log(
-					"Starting AI generation for deck:",
-					result.id,
-					"topic:",
-					topic,
-				);
-				generateFlashcards.mutate({
-					deckId: result.id,
-					topic: topic,
-					count: 10,
-				});
-			}
-		} catch (error) {
-			console.error("Error in handleAITopicSelect:", error);
-			toast.error("Failed to create deck");
-		}
-	};
 
 	const handleDeleteDeck = (
 		deck: { id: string; name: string },
@@ -121,105 +74,100 @@ export function DecksClient() {
 	const canCreate = name.trim().length > 0;
 
 	return (
-		<div className="grid gap-6 md:grid-cols-[1fr,2fr]">
-			<div className="space-y-6">
-				<Card>
-					<CardHeader>
-						<CardTitle>New Deck</CardTitle>
-					</CardHeader>
-					<CardContent className="grid gap-3">
-						<Input
-							placeholder="Deck name"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-						/>
-						<Textarea
-							placeholder="Description (optional)"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-						/>
-						<Button
-							onClick={() =>
-								createDeck.mutate({
-									name,
-									description: description || undefined,
-								})
-							}
-							disabled={!canCreate || createDeck.isPending}
-						>
-							Create Deck
-						</Button>
-					</CardContent>
-				</Card>
-
-				<AIFlashcardGeneratorCard
-					onTopicSelect={handleAITopicSelect}
-					isGenerating={createDeck.isPending || generateFlashcards.isPending}
-				/>
-			</div>
-
-			<Card>
-				<CardHeader>
-					<CardTitle>Decks</CardTitle>
-				</CardHeader>
-				<CardContent>
-					{isLoading ? (
-						<div className="text-muted-foreground">Loading...</div>
-					) : !decks || decks.length === 0 ? (
-						<div className="text-muted-foreground">
-							No decks yet. Create your first deck.
-						</div>
-					) : (
-						<ul className="grid gap-2">
-							{decks.map((d) => (
-								<li key={d.id}>
-									<div
-										className={`rounded-md border p-3 ${selectedDeckId === d.id ? "ring-2 ring-primary" : ""}`}
-									>
-										<button
-											type="button"
-											className="-m-2 w-full rounded-md p-2 text-left hover:bg-accent"
-											onClick={() => setSelectedDeckId(d.id)}
-										>
-											<div className="font-medium">{d.name}</div>
-											{d.description && (
-												<div className="text-muted-foreground text-sm">
-													{d.description}
-												</div>
-											)}
-										</button>
-										<div className="mt-2 flex justify-end">
-											<Button
-												variant="ghost"
-												size="sm"
-												className="text-destructive hover:text-destructive"
-												onClick={(e) =>
-													handleDeleteDeck({ id: d.id, name: d.name }, e)
-												}
-												title="Click to delete (Ctrl+Shift+Click for instant delete)"
-											>
-												<Trash2 className="h-4 w-4" />
-											</Button>
-										</div>
-									</div>
-								</li>
-							))}
-						</ul>
-					)}
-				</CardContent>
-			</Card>
-
-			<div className="md:col-span-2">
-				{selectedDeckId ? (
-					<DeckDetail deckId={selectedDeckId} />
-				) : (
+		<div className="grid gap-6">
+			<div className="grid gap-6 lg:grid-cols-[400px,1fr]">
+				<div className="space-y-6">
 					<Card>
-						<CardContent className="p-6 text-muted-foreground">
-							Select a deck to view and add cards.
+						<CardHeader>
+							<CardTitle>Create New Deck</CardTitle>
+						</CardHeader>
+						<CardContent className="grid gap-3">
+							<Input
+								placeholder="Deck name"
+								value={name}
+								onChange={(e) => setName(e.target.value)}
+							/>
+							<Textarea
+								placeholder="Description (optional)"
+								value={description}
+								onChange={(e) => setDescription(e.target.value)}
+							/>
+							<Button
+								onClick={() =>
+									createDeck.mutate({
+										name,
+										description: description || undefined,
+									})
+								}
+								disabled={!canCreate || createDeck.isPending}
+							>
+								Create Deck
+							</Button>
 						</CardContent>
 					</Card>
-				)}
+				</div>
+
+				<Card>
+					<CardHeader>
+						<CardTitle>Your Decks</CardTitle>
+					</CardHeader>
+					<CardContent>
+						{isLoading ? (
+							<div className="text-muted-foreground">Loading...</div>
+						) : !decks || decks.length === 0 ? (
+							<div className="text-muted-foreground">
+								No decks yet. Create your first deck.
+							</div>
+						) : (
+							<ul className="grid gap-2">
+								{decks.map((d) => (
+									<li key={d.id}>
+										<div
+											className={`rounded-md border p-3 ${selectedDeckId === d.id ? "ring-2 ring-primary" : ""}`}
+										>
+											<button
+												type="button"
+												className="-m-2 w-full rounded-md p-2 text-left hover:bg-accent"
+												onClick={() => setSelectedDeckId(d.id)}
+											>
+												<div className="font-medium">{d.name}</div>
+												{d.description && (
+													<div className="text-muted-foreground text-sm">
+														{d.description}
+													</div>
+												)}
+											</button>
+											<div className="mt-2 flex justify-end">
+												<Button
+													variant="ghost"
+													size="sm"
+													className="text-destructive hover:text-destructive"
+													onClick={(e) =>
+														handleDeleteDeck({ id: d.id, name: d.name }, e)
+													}
+													title="Click to delete (Ctrl+Shift+Click for instant delete)"
+												>
+													<Trash2 className="h-4 w-4" />
+												</Button>
+											</div>
+										</div>
+									</li>
+								))}
+							</ul>
+						)}
+					</CardContent>
+				</Card>
 			</div>
+
+			{selectedDeckId ? (
+				<DeckDetail deckId={selectedDeckId} />
+			) : (
+				<Card>
+					<CardContent className="p-6 text-center text-muted-foreground">
+						Select a deck above to view and manage its cards.
+					</CardContent>
+				</Card>
+			)}
 
 			{/* Deck delete confirmation dialog */}
 			<Dialog open={!!deckToDelete} onOpenChange={() => setDeckToDelete(null)}>
@@ -343,9 +291,8 @@ function DeckDetail({ deckId }: { deckId: string }) {
 
 	return (
 		<Card>
-			<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
+			<CardHeader>
 				<CardTitle>Cards</CardTitle>
-				<AIFlashcardGenerator deckId={deckId} />
 			</CardHeader>
 			<CardContent className="grid gap-4">
 				{/* Side-by-side card creation form */}

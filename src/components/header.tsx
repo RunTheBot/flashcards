@@ -14,6 +14,11 @@ const navigationItems = [
 		href: "/dashboard",
 		id: "dashboard",
 	},
+	{
+		label: "Decks",
+		href: "/dashboard/decks",
+		id: "decks",
+	},
 ];
 
 export function Header() {
