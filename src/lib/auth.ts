@@ -10,7 +10,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
   emailAndPassword: {
-    enabled: true,
+    enabled: false,
   },
   socialProviders: {
     ...(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET ? {
@@ -31,7 +31,9 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day (how often to update the session)
   },
   advanced: {
-    generateId: false, // Use database auto-generated IDs
+    database: {
+      generateId: false // Use database auto-generated IDs
+    }
   },
 });
 

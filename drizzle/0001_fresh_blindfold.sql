@@ -1,0 +1,1 @@
+CREATE INDEX "verification_identifier_idx" ON "flashcards_verification" USING btree ("identifier");

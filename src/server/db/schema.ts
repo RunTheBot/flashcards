@@ -21,7 +21,7 @@ export const createTable = pgTableCreator((name) => `flashcards_${name}`);
 
 // Better Auth Tables
 export const user = createTable("user", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("emailVerified").notNull().default(false),
@@ -31,7 +31,7 @@ export const user = createTable("user", {
 });
 
 export const session = createTable("session", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   expiresAt: timestamp("expiresAt").notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
@@ -42,7 +42,7 @@ export const session = createTable("session", {
 });
 
 export const account = createTable("account", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   accountId: text("accountId").notNull(),
   providerId: text("providerId").notNull(),
   userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
@@ -57,14 +57,19 @@ export const account = createTable("account", {
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
 
-export const verification = createTable("verification", {
-  id: text("id").primaryKey(),
-  identifier: text("identifier").notNull(),
-  value: text("value").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+export const verification = createTable("verification", 
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    identifier: text("identifier").notNull(),
+    value: text("value").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    identifierIdx: index("verification_identifier_idx").on(table.identifier),
+  })
+);
 
 // Application Tables
 export const posts = createTable(
@@ -84,7 +89,7 @@ export const posts = createTable(
 
 // Flashcard Tables
 export const decks = createTable("deck", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
   userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
@@ -93,7 +98,7 @@ export const decks = createTable("deck", {
 });
 
 export const cards = createTable("card", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   front: text("front").notNull(),
   back: text("back").notNull(),
   deckId: text("deckId").notNull().references(() => decks.id, { onDelete: "cascade" }),
@@ -102,7 +107,7 @@ export const cards = createTable("card", {
 });
 
 export const cardReviews = createTable("cardReview", {
-  id: text("id").primaryKey(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   cardId: text("cardId").notNull().references(() => cards.id, { onDelete: "cascade" }),
   userId: text("userId").notNull().references(() => user.id, { onDelete: "cascade" }),
   difficulty: integer("difficulty").notNull(), // 1-5 scale

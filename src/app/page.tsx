@@ -16,7 +16,7 @@ export default async function Home() {
         </div>
 
         {/* Hero */}
-        <section className="container max-w-6xl px-4 py-16 md:py-24 flex flex-col items-center">
+        <section className="container mx-auto max-w-6xl px-4 py-16 md:py-24 flex flex-col items-center justify-center min-h-[60vh]">
           <div className="grid max-w-4xl gap-8 text-center">
             <span className="inline-flex items-center gap-2 rounded-full border bg-background/60 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
               <Sparkles className="h-3.5 w-3.5" /> Boost your memory with spaced repetition
