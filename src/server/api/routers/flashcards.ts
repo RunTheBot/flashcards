@@ -335,7 +335,7 @@ export const flashcardsRouter = createTRPCRouter({
 				console.log(`Generated deck name: "${deckNameResult.object.name}"`);
 
 				// Create the deck with generated name
-				const [deck] = await ctx.db
+				const insertedDecks = await ctx.db
 					.insert(decks)
 					.values({
 						name: deckNameResult.object.name,
@@ -343,6 +343,11 @@ export const flashcardsRouter = createTRPCRouter({
 						userId: session.user.id,
 					})
 					.returning();
+
+				const deck = insertedDecks[0];
+				if (!deck) {
+					throw new Error("Failed to create deck");
+				}
 
 				deckId = deck.id;
 				console.log(`Created new deck: "${deck.name}" (${deck.id})`);
