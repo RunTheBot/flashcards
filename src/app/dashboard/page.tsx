@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, Target, Zap, Plus, Play } from "lucide-react";
+import Link from "next/link";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -77,13 +78,17 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create New Deck
+                <Button asChild className="flex items-center gap-2">
+                  <Link href="/dashboard/decks">
+                    <Plus className="h-4 w-4" />
+                    Create New Deck
+                  </Link>
                 </Button>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Play className="h-4 w-4" />
-                  Start Studying
+                <Button asChild variant="outline" className="flex items-center gap-2">
+                  <Link href="/dashboard/review">
+                    <Play className="h-4 w-4" />
+                    Start Studying
+                  </Link>
                 </Button>
               </div>
             </CardContent>
