@@ -43,6 +43,22 @@ export const flashcardsRouter = createTRPCRouter({
       return row;
     }),
 
+  deleteDeck: publicProcedure
+    .input(z.object({ deckId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      const session = await auth.api.getSession({ headers: ctx.headers });
+      if (!session) throw new Error("Unauthorized");
+      // Ensure deck belongs to user
+      const deckRow = await ctx.db.query.decks.findFirst({
+        where: and(eq(decks.id, input.deckId), eq(decks.userId, session.user.id)),
+      });
+      if (!deckRow) throw new Error("Deck not found");
+      
+      // Delete the deck (cards will be cascade deleted due to foreign key constraint)
+      await ctx.db.delete(decks).where(eq(decks.id, input.deckId));
+      return { success: true };
+    }),
+
   // Cards
   getCards: publicProcedure
     .input(z.object({ deckId: z.string().uuid() }))
@@ -69,6 +85,28 @@ export const flashcardsRouter = createTRPCRouter({
       const [row] = await ctx.db
         .insert(cards)
         .values({ deckId: input.deckId, front: input.front, back: input.back })
+        .returning();
+      return row;
+    }),
+
+  updateCard: publicProcedure
+    .input(z.object({ cardId: z.string().uuid(), front: z.string().min(1), back: z.string().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const session = await auth.api.getSession({ headers: ctx.headers });
+      if (!session) throw new Error("Unauthorized");
+      // Ensure card belongs to a deck owned by the user
+      const cardRow = await ctx.db.query.cards.findFirst({ where: eq(cards.id, input.cardId) });
+      if (!cardRow) throw new Error("Card not found");
+      
+      const deckRow = await ctx.db.query.decks.findFirst({
+        where: and(eq(decks.id, cardRow.deckId), eq(decks.userId, session.user.id)),
+      });
+      if (!deckRow) throw new Error("Forbidden");
+      
+      const [row] = await ctx.db
+        .update(cards)
+        .set({ front: input.front, back: input.back, updatedAt: new Date() })
+        .where(eq(cards.id, input.cardId))
         .returning();
       return row;
     }),

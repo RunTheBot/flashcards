@@ -1,5 +1,5 @@
 import { HydrateClient } from "@/trpc/server";
-import { DecksClient } from "./decks-client";
+import { DecksClient } from "@/app/dashboard/decks/decks-client";
 
 export default function DecksPage() {
   return (

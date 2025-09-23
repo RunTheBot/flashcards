@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 import { TRPCReactProvider } from "@/trpc/react";
 import { Header } from "@/components/header";
@@ -26,6 +27,7 @@ export default function RootLayout({
 				<TRPCReactProvider>
 					<Header />
 					{children}
+					<Toaster />
 				</TRPCReactProvider>
 			</body>
 		</html>
