@@ -16,7 +16,7 @@ export const HACKCLUB_MODELS = {
   QWEN_32B: 'qwen/qwen3-32b',
   GPT_OSS_120B: 'openai/gpt-oss-120b', 
   GPT_OSS_20B: 'openai/gpt-oss-20b',
-  LLAMA_4: 'meta-llama/llama-4-maverick',
+  LLAMA_4: 'meta-llama/llama-4-maverick-17b-128e-instruct',
   KIMI: 'moonshotai/kimi-k2-instruct-0905'
 } as const;
 
