@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, lte, max, or } from "drizzle-orm";
 import { z } from "zod";
-import { FSRS, FSRSItem, FSRSReview, MemoryState } from "fsrs-rs-nodejs";
+import { createEmptyCard, Rating, FSRS, generatorParameters } from "ts-fsrs";
+import type { Card, RecordLogItem, RecordLog, Grade } from "ts-fsrs";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
@@ -17,37 +18,41 @@ import { cardReviews, cards, decks } from "@/server/db/schema";
 import { generateObject } from "ai";
 
 // FSRS scheduler instance with default parameters
-const fsrs = new FSRS();
+const fsrsParams = generatorParameters({ enable_fuzz: true });
+const fsrsScheduler = new FSRS(fsrsParams);
 
-// Convert FSRS rating (1-4) from UI rating (1-5)
-function mapUIRatingToFSRS(uiRating: number): number {
-	// UI: 1=Again, 2=Hard, 3=Good, 4=Easy, 5=Easy
-	// FSRS: 1=Again, 2=Hard, 3=Good, 4=Easy
-	return Math.min(uiRating, 4);
+// Convert UI rating (1-4) to ts-fsrs Grade type
+function mapUIRatingToFSRS(uiRating: number): Grade {
+	// UI: 1=Again, 2=Hard, 3=Good, 4=Easy
+	// ts-fsrs: Rating.Again=1, Rating.Hard=2, Rating.Good=3, Rating.Easy=4
+	// Grade excludes Rating.Manual (0)
+	switch (uiRating) {
+		case 1: return Rating.Again as Grade;
+		case 2: return Rating.Hard as Grade;
+		case 3: return Rating.Good as Grade;
+		case 4: return Rating.Easy as Grade;
+		default: return Rating.Good as Grade;
+	}
 }
 
-// Build FSRSItem from card reviews
-async function buildFSRSItem(ctx: { db: typeof import("@/server/db").db }, cardId: string, userId: string): Promise<FSRSItem> {
+// Build Card state from card reviews by replaying them
+async function buildCardFromReviews(ctx: { db: typeof import("@/server/db").db }, cardId: string, userId: string, cardCreatedAt: Date): Promise<Card> {
 	const reviews = await ctx.db.query.cardReviews.findMany({
 		where: and(eq(cardReviews.cardId, cardId), eq(cardReviews.userId, userId)),
 		orderBy: cardReviews.reviewedAt,
 	});
 
-	const fsrsReviews = reviews.map((review: typeof reviews[0], index) => {
-		if (index === 0) {
-			return new FSRSReview(review.rating, 0);
-		}
-		
-		const previousReview = reviews[index - 1];
-		if (!previousReview) {
-			throw new Error("Previous review not found - this should not happen");
-		}
-		
-		const deltaT = Math.floor((review.reviewedAt.getTime() - previousReview.reviewedAt.getTime()) / (1000 * 60 * 60 * 24));
-		return new FSRSReview(review.rating, deltaT);
-	});
+	// Start with an empty card created at the card's creation date
+	let card = createEmptyCard(cardCreatedAt);
 
-	return new FSRSItem(fsrsReviews);
+	// Replay all reviews to get the current card state
+	for (const review of reviews) {
+		const grade = mapUIRatingToFSRS(review.rating);
+		const schedulingCards: RecordLog = fsrsScheduler.repeat(card, review.reviewedAt);
+		card = schedulingCards[grade].card;
+	}
+
+	return card;
 }
 
 export const flashcardsRouter = createTRPCRouter({
@@ -273,34 +278,20 @@ export const flashcardsRouter = createTRPCRouter({
 			});
 			if (!deckRow) throw new Error("Forbidden");
 
-			// Build FSRS item from existing reviews
-			const fsrsItem = await buildFSRSItem(ctx, input.cardId, session.user.id);
+			// Build current card state from existing reviews
+			const currentCard = await buildCardFromReviews(ctx, input.cardId, session.user.id, cardRow.createdAt);
 			
-			// Get current memory state (null if no reviews yet)
-			const currentMemoryState = fsrsItem.reviews.length > 0 ? 
-				fsrs.memoryState(fsrsItem) : null;
-
-			// Calculate days elapsed since last review or card creation
-			const lastReviewDate = fsrsItem.reviews.length > 0 ? 
-				(await ctx.db.query.cardReviews.findFirst({
-					where: and(eq(cardReviews.cardId, input.cardId), eq(cardReviews.userId, session.user.id)),
-					orderBy: (r, { desc }) => desc(r.reviewedAt),
-				}))?.reviewedAt : cardRow.createdAt;
+			// Get the rating for this review
+			const rating = mapUIRatingToFSRS(input.rating);
 			
-			const daysElapsed = lastReviewDate ? 
-				Math.floor((Date.now() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-
-			// Get next states from FSRS
-			const nextStates = fsrs.nextStates(currentMemoryState, 0.9, daysElapsed);
+			// Get scheduling options for this review
+			const now = new Date();
+			const schedulingCards: RecordLog = fsrsScheduler.repeat(currentCard, now);
 			
-			// Select the appropriate state based on rating
-			const selectedState = input.rating === 1 ? nextStates.again :
-				input.rating === 2 ? nextStates.hard :
-				input.rating === 3 ? nextStates.good :
-				nextStates.easy;
-
-			// Calculate next due date
-			const nextDue = new Date(Date.now() + selectedState.interval * 24 * 60 * 60 * 1000);
+			// Get the updated card and log for the selected rating
+			const selectedScheduling = schedulingCards[rating];
+			const updatedCard = selectedScheduling.card;
+			const reviewLog = selectedScheduling.log;
 
 			// Insert the review record
 			const [reviewRow] = await ctx.db
@@ -312,16 +303,20 @@ export const flashcardsRouter = createTRPCRouter({
 				})
 				.returning();
 
-			// Update the card's due date and FSRS state
+			// Update the card's state with new FSRS values
 			await ctx.db
 				.update(cards)
 				.set({
-					due: nextDue,
-					stability: selectedState.memory.stability,
-					difficulty: selectedState.memory.difficulty,
-					reps: (cardRow.reps || 0) + 1,
-					lapses: input.rating === 1 ? (cardRow.lapses || 0) + 1 : cardRow.lapses,
-					last_review: new Date(),
+					due: updatedCard.due,
+					stability: updatedCard.stability,
+					difficulty: updatedCard.difficulty,
+					elapsed_days: updatedCard.elapsed_days,
+					scheduled_days: updatedCard.scheduled_days,
+					learning_steps: updatedCard.learning_steps,
+					reps: updatedCard.reps,
+					lapses: updatedCard.lapses,
+					state: updatedCard.state,
+					last_review: updatedCard.last_review,
 				})
 				.where(eq(cards.id, input.cardId));
 

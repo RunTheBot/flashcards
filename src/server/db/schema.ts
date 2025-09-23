@@ -129,6 +129,7 @@ export const cards = createTable("card", {
 	difficulty: real("difficulty").default(0),
 	elapsed_days: integer("elapsed_days").default(0),
 	scheduled_days: integer("scheduled_days").default(0),
+	learning_steps: integer("learning_steps").default(0),
 	reps: integer("reps").default(0),
 	lapses: integer("lapses").default(0),
 	state: integer("state").default(0), // 0=New, 1=Learning, 2=Review, 3=Relearning
