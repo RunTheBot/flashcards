@@ -1,6 +1,7 @@
 "use client";
 
 import { UserMenu } from "@/components/auth/user-menu";
+import { NoSSR } from "@/components/no-ssr";
 
 // Navigation items configuration
 const navigationItems = [
@@ -59,7 +60,15 @@ export function Header() {
 
 						{/* Right actions */}
 						<div className="flex flex-shrink-0 items-center gap-2">
-							<UserMenu />
+							<NoSSR
+								fallback={
+									<div className="animate-pulse">
+										<div className="h-8 w-8 rounded-full bg-muted" />
+									</div>
+								}
+							>
+								<UserMenu />
+							</NoSSR>
 						</div>
 					</div>
 				</div>
