@@ -27,15 +27,23 @@ function mapUIRatingToFSRS(uiRating: number): number {
 }
 
 // Build FSRSItem from card reviews
-async function buildFSRSItem(ctx: any, cardId: string, userId: string): Promise<FSRSItem> {
+async function buildFSRSItem(ctx: { db: typeof import("@/server/db").db }, cardId: string, userId: string): Promise<FSRSItem> {
 	const reviews = await ctx.db.query.cardReviews.findMany({
 		where: and(eq(cardReviews.cardId, cardId), eq(cardReviews.userId, userId)),
 		orderBy: cardReviews.reviewedAt,
 	});
 
-	const fsrsReviews = reviews.map((review, index) => {
-		const deltaT = index === 0 ? 0 : 
-			Math.floor((review.reviewedAt.getTime() - reviews[index - 1].reviewedAt.getTime()) / (1000 * 60 * 60 * 24));
+	const fsrsReviews = reviews.map((review: typeof reviews[0], index) => {
+		if (index === 0) {
+			return new FSRSReview(review.rating, 0);
+		}
+		
+		const previousReview = reviews[index - 1];
+		if (!previousReview) {
+			throw new Error("Previous review not found - this should not happen");
+		}
+		
+		const deltaT = Math.floor((review.reviewedAt.getTime() - previousReview.reviewedAt.getTime()) / (1000 * 60 * 60 * 24));
 		return new FSRSReview(review.rating, deltaT);
 	});
 

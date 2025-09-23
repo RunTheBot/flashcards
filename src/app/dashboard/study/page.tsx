@@ -1,5 +1,5 @@
 import { HydrateClient } from "@/trpc/server";
-import { StudyClient } from "./study-client";
+import { StudyClient } from "@/app/dashboard/study/study-client";
 
 export default function StudyPage() {
 	return (
