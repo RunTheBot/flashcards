@@ -21,7 +21,17 @@ export const HACKCLUB_MODELS = {
 } as const;
 
 /**
- * Default model for Hack Club AI
+ * Main model for heavy AI tasks (flashcard content generation)
  */
-export const hackclubModel = hackclub(HACKCLUB_MODELS.QWEN_32B);
+export const hackclubMainModel = hackclub(HACKCLUB_MODELS.GPT_OSS_120B);
+
+/**
+ * Light model for simple tasks (titles, descriptions)
+ */
+export const hackclubLightModel = hackclub(HACKCLUB_MODELS.GPT_OSS_20B);
+
+/**
+ * Default model for backward compatibility
+ */
+export const hackclubModel = hackclubMainModel;
 

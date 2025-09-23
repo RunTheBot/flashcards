@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 
 export function ReviewClient() {
   const [index, setIndex] = useState(0);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
   const utils = api.useUtils();
   const { data: queue, isLoading, refetch } = api.flashcards.getDailyQueue.useQuery({ limit: 20 });
   const submit = api.flashcards.submitReview.useMutation({
@@ -25,12 +26,16 @@ export function ReviewClient() {
       if (!current) return;
       await submit.mutateAsync({ cardId: current.id, difficulty });
       setIndex((i) => i + 1);
+      setIsCardFlipped(false); // Reset flip state for next card
     },
     [current, submit],
   );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Only allow keyboard shortcuts when card is flipped
+      if (!isCardFlipped) return;
+      
       if (e.key === "1") handleAnswer(1);
       else if (e.key === "2") handleAnswer(2);
       else if (e.key === "3") handleAnswer(3);
@@ -39,7 +44,7 @@ export function ReviewClient() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [handleAnswer]);
+  }, [handleAnswer, isCardFlipped]);
 
   if (isLoading) return <div className="p-6">Loading...</div>;
 
@@ -57,23 +62,34 @@ export function ReviewClient() {
     <div className="grid gap-4">
       <Flashcard
         className="mx-auto max-w-xl"
-        front={<div className="text-xl font-medium">{current.front}</div>}
-        back={<div className="text-lg">{current.back}</div>}
+        front={<div className="text-xl font-medium">{current?.front}</div>}
+        back={<div className="text-lg">{current?.back}</div>}
+        isFlipped={isCardFlipped}
+        onFlip={setIsCardFlipped}
       />
-      <div className="flex flex-wrap gap-2 justify-center">
-        <Button variant="destructive" onClick={() => handleAnswer(1)} title="1">
-          Again
-        </Button>
-        <Button variant="secondary" onClick={() => handleAnswer(2)} title="2">
-          Hard
-        </Button>
-        <Button onClick={() => handleAnswer(3)} title="3">
-          Good
-        </Button>
-        <Button variant="outline" onClick={() => handleAnswer(4)} title="4">
-          Easy
-        </Button>
-      </div>
+      
+      {!isCardFlipped && (
+        <div className="text-center text-muted-foreground">
+          <p>Click the card to reveal the answer</p>
+        </div>
+      )}
+      
+      {isCardFlipped && (
+        <div className="flex flex-wrap gap-2 justify-center">
+          <Button variant="destructive" onClick={() => handleAnswer(1)} title="1">
+            Again
+          </Button>
+          <Button variant="secondary" onClick={() => handleAnswer(2)} title="2">
+            Hard
+          </Button>
+          <Button onClick={() => handleAnswer(3)} title="3">
+            Good
+          </Button>
+          <Button variant="outline" onClick={() => handleAnswer(4)} title="4">
+            Easy
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

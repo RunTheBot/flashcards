@@ -10,13 +10,26 @@ interface FlashcardProps {
   front: React.ReactNode
   back: React.ReactNode
   className?: string
+  onFlip?: (isFlipped: boolean) => void
+  isFlipped?: boolean
 }
 
-export function Flashcard({ front, back, className }: FlashcardProps) {
-  const [isFlipped, setIsFlipped] = useState(false)
+export function Flashcard({ front, back, className, onFlip, isFlipped: controlledIsFlipped }: FlashcardProps) {
+  const [internalIsFlipped, setInternalIsFlipped] = useState(false)
+  
+  // Use controlled state if provided, otherwise use internal state
+  const isFlipped = controlledIsFlipped !== undefined ? controlledIsFlipped : internalIsFlipped
 
   const handleFlip = () => {
-    setIsFlipped(!isFlipped)
+    const newFlippedState = !isFlipped
+    
+    if (controlledIsFlipped !== undefined) {
+      // Controlled mode - notify parent
+      onFlip?.(newFlippedState)
+    } else {
+      // Uncontrolled mode - manage internal state
+      setInternalIsFlipped(newFlippedState)
+    }
   }
 
   return (

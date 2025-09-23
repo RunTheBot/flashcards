@@ -5,7 +5,8 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import { auth } from "@/lib/auth";
 import { cards, cardReviews, decks } from "@/server/db/schema";
 import { generateObject } from 'ai';
-import { hackclubModel, HACKCLUB_MODELS, hackclub } from '@/lib/ai/hackclub';
+import { hackclubMainModel, hackclubLightModel } from '@/lib/ai/hackclub';
+import { getAISettings, getCardCountOptions, getDifficultyOptions, buildDeckNamePrompt, buildCardCountPrompt, buildFlashcardGenerationPrompt } from '@/server/config/ai-settings';
 
 // Simple scheduler: computes nextReviewAt based on difficulty and last due time
 function computeNextReviewAt(difficulty: number, lastNext?: Date | null) {
@@ -22,6 +23,18 @@ function computeNextReviewAt(difficulty: number, lastNext?: Date | null) {
 }
 
 export const flashcardsRouter = createTRPCRouter({
+  // AI Settings
+  getAISettings: publicProcedure.query(async () => {
+    const settings = getAISettings();
+    return {
+      models: settings.models,
+      cardCountOptions: getCardCountOptions(),
+      difficultyOptions: getDifficultyOptions(),
+      defaultCardCount: settings.flashcards.defaultCardCount,
+      defaultDifficulty: settings.flashcards.defaultDifficulty,
+    };
+  }),
+
   // Decks
   getDecks: publicProcedure.query(async ({ ctx }) => {
     const session = await auth.api.getSession({ headers: ctx.headers });
@@ -200,19 +213,78 @@ export const flashcardsRouter = createTRPCRouter({
   // AI Generation
   generateFlashcards: publicProcedure
     .input(z.object({ 
-      deckId: z.string().uuid(), 
-      topic: z.string().min(1), 
-      count: z.number().min(1).max(20).default(10) 
+      deckId: z.string().uuid().optional(), 
+      topic: z.string().min(1).max(getAISettings().generation.maxTopicLength), 
+      count: z.number().min(getAISettings().flashcards.minCardCount).max(getAISettings().flashcards.maxCardCount).optional() 
     }))
     .mutation(async ({ ctx, input }) => {
       const session = await auth.api.getSession({ headers: ctx.headers });
       if (!session) throw new Error("Unauthorized");
       
-      // Ensure deck belongs to user
-      const deckRow = await ctx.db.query.decks.findFirst({
-        where: and(eq(decks.id, input.deckId), eq(decks.userId, session.user.id)),
-      });
-      if (!deckRow) throw new Error("Deck not found");
+      let deckId = input.deckId;
+      
+      // If no deckId provided, create a new deck with auto-generated name
+      if (!deckId) {
+        console.log('Generating deck name with light model...');
+        
+        // Generate deck name using light model
+        const deckNameSchema = z.object({
+          name: z.string().describe('A concise, descriptive name for the flashcard deck (2-6 words)'),
+        });
+
+        const deckNamePrompt = buildDeckNamePrompt(input.topic);
+
+        const deckNameResult = await generateObject({
+          model: hackclubLightModel,
+          schema: deckNameSchema,
+          prompt: deckNamePrompt,
+        });
+
+        console.log(`Generated deck name: "${deckNameResult.object.name}"`);
+
+        // Create the deck with generated name
+        const [deck] = await ctx.db
+          .insert(decks)
+          .values({ 
+            name: deckNameResult.object.name, 
+            description: `AI-generated flashcards about: ${input.topic.substring(0, 100)}${input.topic.length > 100 ? "..." : ""}`,
+            userId: session.user.id 
+          })
+          .returning();
+        
+        deckId = deck.id;
+        console.log(`Created new deck: "${deck.name}" (${deck.id})`);
+      } else {
+        // Ensure existing deck belongs to user
+        const deckRow = await ctx.db.query.decks.findFirst({
+          where: and(eq(decks.id, deckId), eq(decks.userId, session.user.id)),
+        });
+        if (!deckRow) throw new Error("Deck not found");
+      }
+
+      // Get AI settings and determine card count
+      const aiSettings = getAISettings();
+      let cardCount = input.count || (aiSettings.flashcards.defaultCardCount === "auto" ? 10 : aiSettings.flashcards.defaultCardCount);
+      
+      if (!input.count) {
+        console.log('Auto-determining optimal card count with light model...');
+        
+        const cardCountSchema = z.object({
+          count: z.number().min(aiSettings.flashcards.minCardCount).max(aiSettings.flashcards.maxCardCount).describe(`The optimal number of flashcards for this topic (${aiSettings.flashcards.minCardCount}-${aiSettings.flashcards.maxCardCount})`),
+          reasoning: z.string().describe('Brief explanation of why this number is optimal'),
+        });
+
+        const cardCountPrompt = buildCardCountPrompt(input.topic);
+
+        const cardCountResult = await generateObject({
+          model: hackclubLightModel,
+          schema: cardCountSchema,
+          prompt: cardCountPrompt,
+        });
+
+        cardCount = cardCountResult.object.count;
+        console.log(`Auto-determined card count: ${cardCount} (${cardCountResult.object.reasoning})`);
+      }
 
       const flashcardSchema = z.object({
         flashcards: z.array(
@@ -223,98 +295,26 @@ export const flashcardsRouter = createTRPCRouter({
         ).describe('An array of flashcards generated from the topic'),
       });
 
-      const prompt = `Generate ${input.count} flashcards about "${input.topic}". 
-      
-      Create educational flashcards that help someone learn about this topic effectively. 
-      Each flashcard should have:
-      - A clear, concise question or prompt on the front
-      - A comprehensive but not overly long answer on the back
-      
-      Make sure the flashcards cover different aspects of the topic and progress from basic to more advanced concepts where appropriate.
-      
-      Focus on key facts, definitions, concepts, and important details that someone studying this topic should know.`;
+      const prompt = buildFlashcardGenerationPrompt(input.topic, cardCount);
 
-      // Try multiple Groq models with fallback
-      const modelsToTry = [
-        { model: hackclubModel, name: 'Qwen 32B' },
-        { model: hackclub(HACKCLUB_MODELS.LLAMA_4), name: 'Llama 4' },
-        { model: hackclub(HACKCLUB_MODELS.GPT_OSS_20B), name: 'GPT OSS 20B' },
-        { model: hackclub(HACKCLUB_MODELS.GPT_OSS_120B), name: 'GPT OSS 120B' },
-      ];
-
-      let lastError: Error | null = null;
+      // Generate flashcards using GPT OSS 120B
+      console.log('Generating flashcards with GPT OSS 120B...');
       
-      for (const { model, name } of modelsToTry) {
-        try {
-          console.log(`Trying to generate flashcards with ${name}...`);
-          
-          const result = await generateObject({
-            model,
-            schema: flashcardSchema,
-            prompt,
-          });
+      const result = await generateObject({
+        model: hackclubMainModel,
+        schema: flashcardSchema,
+        prompt,
+      });
 
-          console.log(`AI generation successful with ${name}, inserting cards...`);
-          
-          // Insert generated flashcards into the database
-          const generatedCards = [];
-          for (const flashcard of result.object.flashcards) {
-            const [card] = await ctx.db
-              .insert(cards)
-              .values({ 
-                deckId: input.deckId, 
-                front: flashcard.front, 
-                back: flashcard.back 
-              })
-              .returning();
-            generatedCards.push(card);
-          }
-
-          console.log(`Successfully generated ${generatedCards.length} flashcards using ${name}`);
-          return {
-            success: true,
-            cardsGenerated: generatedCards.length,
-            cards: generatedCards,
-            modelUsed: name,
-          };
-        } catch (error) {
-          console.error(`Failed with ${name}:`, error);
-          lastError = error instanceof Error ? error : new Error('Unknown error');
-          
-          // Continue to next model
-          continue;
-        }
-      }
-
-      // If all models failed, create some manual fallback flashcards
-      console.error('All AI models failed. Creating fallback flashcards...');
-      console.error('Last error:', lastError);
+      console.log('AI generation successful, inserting cards...');
       
-      // Create some basic flashcards based on the topic as a fallback
-      const fallbackFlashcards = [
-        {
-          front: `What is the main concept of "${input.topic}"?`,
-          back: `${input.topic} is an important topic that requires study and understanding. This is a fallback card created when AI generation failed.`
-        },
-        {
-          front: `Why is "${input.topic}" important to learn?`,
-          back: `Understanding ${input.topic} helps build knowledge and skills in this subject area.`
-        },
-        {
-          front: `What are the key aspects of "${input.topic}"?`,
-          back: `${input.topic} has multiple components that should be studied systematically.`
-        }
-      ];
-
-      // Take only the requested number of cards
-      const cardsToCreate = fallbackFlashcards.slice(0, Math.min(input.count, fallbackFlashcards.length));
-      
+      // Insert generated flashcards into the database
       const generatedCards = [];
-      for (const flashcard of cardsToCreate) {
+      for (const flashcard of result.object.flashcards) {
         const [card] = await ctx.db
           .insert(cards)
           .values({ 
-            deckId: input.deckId, 
+            deckId: deckId, 
             front: flashcard.front, 
             back: flashcard.back 
           })
@@ -322,14 +322,13 @@ export const flashcardsRouter = createTRPCRouter({
         generatedCards.push(card);
       }
 
-      console.log(`Created ${generatedCards.length} fallback flashcards`);
+      console.log(`Successfully generated ${generatedCards.length} flashcards using GPT OSS 120B`);
       return {
         success: true,
         cardsGenerated: generatedCards.length,
         cards: generatedCards,
-        modelUsed: 'Fallback (AI generation failed)',
-        warning: 'AI generation failed, created basic flashcards as fallback'
+        modelUsed: 'GPT OSS 120B',
+        deckId: deckId,
       };
-      
     }),
 });

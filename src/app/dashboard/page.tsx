@@ -85,7 +85,7 @@ export default async function DashboardPage() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="flex items-center gap-2">
-                  <Link href="/dashboard/decks">
+                  <Link href="/dashboard/ai-flashcards">
                     <Sparkles className="h-4 w-4" />
                     Generate with AI
                   </Link>
