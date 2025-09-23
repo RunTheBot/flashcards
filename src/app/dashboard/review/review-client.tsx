@@ -31,9 +31,16 @@ export function ReviewClient() {
 	const handleAnswer = useCallback(
 		async (difficulty: 1 | 2 | 3 | 4 | 5) => {
 			if (!current) return;
+			
+			// First flip back to front
+			setIsCardFlipped(false);
+			
+			// Small delay to allow flip animation to complete
+			await new Promise(resolve => setTimeout(resolve, 100));
+			
+			// Then submit review and move to next card
 			await submit.mutateAsync({ cardId: current.id, difficulty });
 			setIndex((i) => i + 1);
-			setIsCardFlipped(false); // Reset flip state for next card
 		},
 		[current, submit],
 	);
