@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Target, Zap, Plus, Play } from "lucide-react";
+import { BookOpen, Target, Zap, Plus, Play, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export default async function DashboardPage() {
@@ -82,6 +82,12 @@ export default async function DashboardPage() {
                   <Link href="/dashboard/decks">
                     <Plus className="h-4 w-4" />
                     Create New Deck
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" className="flex items-center gap-2">
+                  <Link href="/dashboard/decks">
+                    <Sparkles className="h-4 w-4" />
+                    Generate with AI
                   </Link>
                 </Button>
                 <Button asChild variant="outline" className="flex items-center gap-2">

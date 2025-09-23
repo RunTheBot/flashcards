@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { AIFlashcardGenerator, AIFlashcardGeneratorCard } from "@/components/ai-flashcard-generator";
 
 export function DecksClient() {
   const utils = api.useUtils();
@@ -37,25 +38,69 @@ export function DecksClient() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
+  const generateFlashcards = api.flashcards.generateFlashcards.useMutation({
+    onSuccess: async (result) => {
+      console.log('AI generation successful:', result);
+      await utils.flashcards.getCards.invalidate();
+      toast.success(`Generated ${result.cardsGenerated} flashcards successfully!`);
+    },
+    onError: (error) => {
+      console.error('AI generation failed:', error);
+      toast.error("Failed to generate flashcards: " + error.message);
+    },
+  });
+
+  const handleAITopicSelect = async (topic: string) => {
+    // Create a new deck for the AI-generated topic and immediately generate cards
+    try {
+      console.log('Creating deck for topic:', topic);
+      const result = await createDeck.mutateAsync({ 
+        name: `${topic} - AI Generated`, 
+        description: `AI-generated flashcards about ${topic}` 
+      });
+      if (result) {
+        console.log('Deck created successfully:', result.id);
+        setSelectedDeckId(result.id);
+        // Immediately generate flashcards for the new deck
+        console.log('Starting AI generation for deck:', result.id, 'topic:', topic);
+        generateFlashcards.mutate({ 
+          deckId: result.id, 
+          topic: topic, 
+          count: 10 
+        });
+      }
+    } catch (error) {
+      console.error('Error in handleAITopicSelect:', error);
+      toast.error("Failed to create deck");
+    }
+  };
+
   const canCreate = name.trim().length > 0;
 
   return (
     <div className="grid gap-6 md:grid-cols-[1fr,2fr]">
-      <Card>
-        <CardHeader>
-          <CardTitle>New Deck</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          <Input placeholder="Deck name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
-          <Button
-            onClick={() => createDeck.mutate({ name, description: description || undefined })}
-            disabled={!canCreate || createDeck.isPending}
-          >
-            Create Deck
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>New Deck</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <Input placeholder="Deck name" value={name} onChange={(e) => setName(e.target.value)} />
+            <Textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <Button
+              onClick={() => createDeck.mutate({ name, description: description || undefined })}
+              disabled={!canCreate || createDeck.isPending}
+            >
+              Create Deck
+            </Button>
+          </CardContent>
+        </Card>
+
+        <AIFlashcardGeneratorCard 
+          onTopicSelect={handleAITopicSelect} 
+          isGenerating={createDeck.isPending || generateFlashcards.isPending}
+        />
+      </div>
 
       <Card>
         <CardHeader>
@@ -186,8 +231,9 @@ function DeckDetail({ deckId }: { deckId: string }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
         <CardTitle>Cards</CardTitle>
+        <AIFlashcardGenerator deckId={deckId} />
       </CardHeader>
       <CardContent className="grid gap-4">
         {/* Side-by-side card creation form */}
