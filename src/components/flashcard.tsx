@@ -20,10 +20,10 @@ export function Flashcard({ front, back, className }: FlashcardProps) {
   }
 
   return (
-    <div className={cn("perspective-1000", className)}>
+    <div className={cn("perspective-1000 w-full h-64", className)}>
       <div
         className={cn(
-          "relative w-full h-64 cursor-pointer transition-transform duration-700 transform-style-preserve-3d",
+          "relative w-full h-full cursor-pointer transition-transform duration-700 transform-style-preserve-3d",
           isFlipped && "rotate-y-180",
         )}
         onClick={handleFlip}

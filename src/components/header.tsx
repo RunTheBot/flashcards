@@ -4,7 +4,7 @@ import { UserMenu } from "@/components/auth/user-menu";
 
 export function Header() {
   return (
-    <nav className="sticky top-0 z-50 border-b bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="relative">
         <div className="container mx-auto max-w-7xl px-4">
           <div className="flex h-16 items-center justify-between">

@@ -16,8 +16,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto py-8 px-4">
+    <div className="h-[calc(100vh-4rem)] bg-background overflow-y-auto">
+      <div className="container mx-auto py-8 px-4 h-full">
         <div className="flex flex-col gap-8">
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold tracking-tight">
