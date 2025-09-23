@@ -39,7 +39,7 @@ export function ReviewClient() {
 	}, [current]);
 
 	const handleAnswer = useCallback(
-		async (difficulty: 1 | 2 | 3 | 4 | 5) => {
+		async (rating: 1 | 2 | 3 | 4) => {
 			if (!current || isSubmitting) return;
 
 			setIsSubmitting(true);
@@ -52,7 +52,7 @@ export function ReviewClient() {
 
 			try {
 				// Submit review; queue refetch will remove current card
-				await submit.mutateAsync({ cardId: current.id, difficulty });
+				await submit.mutateAsync({ cardId: current.id, rating });
 			} catch (error) {
 				console.error("Error submitting review:", error);
 				// Optionally show an error message to the user
@@ -72,7 +72,6 @@ export function ReviewClient() {
 			else if (e.key === "2") handleAnswer(2);
 			else if (e.key === "3") handleAnswer(3);
 			else if (e.key === "4") handleAnswer(4);
-			else if (e.key === "5") handleAnswer(5);
 		};
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
@@ -114,17 +113,31 @@ export function ReviewClient() {
 						variant="destructive"
 						onClick={() => handleAnswer(1)}
 						disabled={isSubmitting}
-						title="1"
+						title="1 - Again"
 					>
 						Again
 					</Button>
-					<Button variant="secondary" onClick={() => handleAnswer(2)} title="2" disabled={isSubmitting}>
+					<Button 
+						variant="secondary" 
+						onClick={() => handleAnswer(2)} 
+						title="2 - Hard" 
+						disabled={isSubmitting}
+					>
 						Hard
 					</Button>
-					<Button onClick={() => handleAnswer(3)} title="3" disabled={isSubmitting}>
+					<Button 
+						onClick={() => handleAnswer(3)} 
+						title="3 - Good" 
+						disabled={isSubmitting}
+					>
 						Good
 					</Button>
-					<Button variant="outline" onClick={() => handleAnswer(4)} title="4" disabled={isSubmitting}>
+					<Button 
+						variant="outline" 
+						onClick={() => handleAnswer(4)} 
+						title="4 - Easy" 
+						disabled={isSubmitting}
+					>
 						Easy
 					</Button>
 				</div>

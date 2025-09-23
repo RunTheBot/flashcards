@@ -74,6 +74,9 @@ importers:
       drizzle-orm:
         specifier: ^0.41.0
         version: 0.41.0(@opentelemetry/api@1.9.0)(gel@2.1.1)(kysely@0.28.7)(postgres@3.4.7)
+      fsrs-rs-nodejs:
+        specifier: ^0.9.0
+        version: 0.9.0
       lucide-react:
         specifier: ^0.544.0
         version: 0.544.0(react@19.1.1)
@@ -1544,6 +1547,88 @@ packages:
   eventsource-parser@3.0.6:
     resolution: {integrity: sha512-Vo1ab+QXPzZ4tCa8SwIHJFaSzy4R6SHf7BY79rFBDf0idraZWAkYrDjDj8uWaSm3S2TK+hJ7/t1CEmZ7jXw+pg==}
     engines: {node: '>=18.0.0'}
+
+  fsrs-rs-nodejs-android-arm-eabi@0.9.0:
+    resolution: {integrity: sha512-FLO2HLeQTOfwg8SLsruTt3UIUTIPXDofmj7nylE1Cm4P9uIfGyI8znyWCTM5siU6e5E5A8pY0jnH4R0hQ5fomA==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [android]
+
+  fsrs-rs-nodejs-android-arm64@0.9.0:
+    resolution: {integrity: sha512-bU2sEbWdUMph0GebxRgxJOCL2jRw8pXDlK0jo0qTKuIQ5AjudtAoAM83DIt3D+gxdharnkZl1mGtWcI3MRJy2g==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [android]
+
+  fsrs-rs-nodejs-darwin-arm64@0.9.0:
+    resolution: {integrity: sha512-J2SDjIqnJBfUlgLb3XHIYZL2vX/O/pLa9TdYuO0njnLl9wXUl5JYmU/n0BZfuPPamBlhIl3HEfAybeLCqN3vmA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [darwin]
+
+  fsrs-rs-nodejs-darwin-x64@0.9.0:
+    resolution: {integrity: sha512-bu3P0PTCbT+KBb6BNx3mwcvM/e50UspCwurO5ctXZAuVhf6VpMczFjz8yMDrGhY9ZNh6vslk2ooVc9osscYveQ==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [darwin]
+
+  fsrs-rs-nodejs-freebsd-x64@0.9.0:
+    resolution: {integrity: sha512-/Zfiu0fO+1e43It+efhcO4IbEf2wDQTwk8RsB8I45OBhj9yDMJekpkxcje7aUx69tYyVqa6sRrK+FKhacBtFyA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [freebsd]
+
+  fsrs-rs-nodejs-linux-arm-gnueabihf@0.9.0:
+    resolution: {integrity: sha512-wOfmn1ebQt5chPRFz774fdrBItAwt5SP2uzoLl/jGYwlQUx0fm3Z+UYcRHgCvxqv3KrsSDCEywDxfyQrqcWGTg==}
+    engines: {node: '>= 10'}
+    cpu: [arm]
+    os: [linux]
+
+  fsrs-rs-nodejs-linux-arm64-gnu@0.9.0:
+    resolution: {integrity: sha512-yPwpOlevcXbVfowlGJD9tgyTIm6KqPPiROxRpJINLuQzl6grZistN+ZeI51el3fNuob2x1OgutAlv0q6LV039g==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  fsrs-rs-nodejs-linux-arm64-musl@0.9.0:
+    resolution: {integrity: sha512-kBYlV3ut7FzB+7t/z/wG4FS7ljBbghvAYSyzzOtQ1NbY91mln7cyE1YjNoHXXfAd9C9x64+HsPhQ/PUk4OaGFA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [linux]
+
+  fsrs-rs-nodejs-linux-x64-gnu@0.9.0:
+    resolution: {integrity: sha512-Ej1Pi7GbUQx3Lu1SKIsuv7jtnGycYv42ybYdr+F9Zd6qfKHuMIgRgYXkp04XWixKCHPR7QASKEXlmFdbJb9W4A==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  fsrs-rs-nodejs-linux-x64-musl@0.9.0:
+    resolution: {integrity: sha512-/CPAY52MjZZyyOU84LaeaUb7PfqXxFVrNGmyL/xLh5iE+NWQmmFOm4AFTo4a3/R+sdrUiFteTHiCpTRTP48h3Q==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [linux]
+
+  fsrs-rs-nodejs-win32-arm64-msvc@0.9.0:
+    resolution: {integrity: sha512-Gzjb61HZyhv+JI4G+jml70MImZB9/e1LQbkg9RZvyTbXleunnGp8quXDYBastWBKEqewny0QvuPIb4oDPws0bA==}
+    engines: {node: '>= 10'}
+    cpu: [arm64]
+    os: [win32]
+
+  fsrs-rs-nodejs-win32-ia32-msvc@0.9.0:
+    resolution: {integrity: sha512-kqt1UWPJqV3KS0Vu5YeYcB4HFtuHkfQEeRHlcZjuvmjjgVXosnltwhFskXmsRgOCj3JEewpc8XmFi4qpr8JQqQ==}
+    engines: {node: '>= 10'}
+    cpu: [ia32]
+    os: [win32]
+
+  fsrs-rs-nodejs-win32-x64-msvc@0.9.0:
+    resolution: {integrity: sha512-3AgTgP2DJLLLxyTyT1ZDd+QJugVJMk04rT+FBar7PbtVGFZ6OB1XuHrSgsXhltOvIk3sRJphMJFL4Ocy6DvVKA==}
+    engines: {node: '>= 10'}
+    cpu: [x64]
+    os: [win32]
+
+  fsrs-rs-nodejs@0.9.0:
+    resolution: {integrity: sha512-6SaPAmiAxXywa9fhqDP/+DQ3nY86hGu7+LqsWPs8QsH9FY+nczIW0d6bC0rhr8WuW11GEvQeL4i+BQdG9TE+wg==}
+    engines: {node: '>= 10'}
 
   gel@2.1.1:
     resolution: {integrity: sha512-Newg9X7mRYskoBjSw70l1YnJ/ZGbq64VPyR821H5WVkTGpHG2O0mQILxCeUhxdYERLFY9B4tUyKLyf3uMTjtKw==}
@@ -3054,6 +3139,61 @@ snapshots:
       '@esbuild/win32-x64': 0.19.12
 
   eventsource-parser@3.0.6: {}
+
+  fsrs-rs-nodejs-android-arm-eabi@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-android-arm64@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-darwin-arm64@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-darwin-x64@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-freebsd-x64@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-linux-arm-gnueabihf@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-linux-arm64-gnu@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-linux-arm64-musl@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-linux-x64-gnu@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-linux-x64-musl@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-win32-arm64-msvc@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-win32-ia32-msvc@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs-win32-x64-msvc@0.9.0:
+    optional: true
+
+  fsrs-rs-nodejs@0.9.0:
+    optionalDependencies:
+      fsrs-rs-nodejs-android-arm-eabi: 0.9.0
+      fsrs-rs-nodejs-android-arm64: 0.9.0
+      fsrs-rs-nodejs-darwin-arm64: 0.9.0
+      fsrs-rs-nodejs-darwin-x64: 0.9.0
+      fsrs-rs-nodejs-freebsd-x64: 0.9.0
+      fsrs-rs-nodejs-linux-arm-gnueabihf: 0.9.0
+      fsrs-rs-nodejs-linux-arm64-gnu: 0.9.0
+      fsrs-rs-nodejs-linux-arm64-musl: 0.9.0
+      fsrs-rs-nodejs-linux-x64-gnu: 0.9.0
+      fsrs-rs-nodejs-linux-x64-musl: 0.9.0
+      fsrs-rs-nodejs-win32-arm64-msvc: 0.9.0
+      fsrs-rs-nodejs-win32-ia32-msvc: 0.9.0
+      fsrs-rs-nodejs-win32-x64-msvc: 0.9.0
 
   gel@2.1.1:
     dependencies:

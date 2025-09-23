@@ -7,6 +7,7 @@ import {
 	index,
 	integer,
 	pgTableCreator,
+	real,
 	text,
 	timestamp,
 } from "drizzle-orm/pg-core";
@@ -123,6 +124,16 @@ export const cards = createTable("card", {
 	deckId: text("deckId")
 		.notNull()
 		.references(() => decks.id, { onDelete: "cascade" }),
+	// FSRS fields
+	stability: real("stability").default(0),
+	difficulty: real("difficulty").default(0),
+	elapsed_days: integer("elapsed_days").default(0),
+	scheduled_days: integer("scheduled_days").default(0),
+	reps: integer("reps").default(0),
+	lapses: integer("lapses").default(0),
+	state: integer("state").default(0), // 0=New, 1=Learning, 2=Review, 3=Relearning
+	last_review: timestamp("last_review"),
+	due: timestamp("due").notNull().defaultNow(),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -137,7 +148,6 @@ export const cardReviews = createTable("cardReview", {
 	userId: text("userId")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
-	difficulty: integer("difficulty").notNull(), // 1-5 scale
+	rating: integer("rating").notNull(), // FSRS rating: 1=Again, 2=Hard, 3=Good, 4=Easy
 	reviewedAt: timestamp("reviewedAt").notNull().defaultNow(),
-	nextReviewAt: timestamp("nextReviewAt").notNull(),
 });

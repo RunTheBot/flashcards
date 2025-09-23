@@ -1,5 +1,6 @@
 import { and, desc, eq, isNull, lte, max, or } from "drizzle-orm";
 import { z } from "zod";
+import { FSRS, FSRSItem, FSRSReview, MemoryState } from "fsrs-rs-nodejs";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
@@ -15,19 +16,30 @@ import {
 import { cardReviews, cards, decks } from "@/server/db/schema";
 import { generateObject } from "ai";
 
-// Simple scheduler: computes nextReviewAt based on difficulty and last due time
-function computeNextReviewAt(difficulty: number, lastNext?: Date | null) {
-	const now = new Date();
-	const base = lastNext && lastNext > now ? lastNext : now;
-	// Map difficulty to minutes/days
-	// 1 = Again (10 min), 2 = Hard (1 day), 3 = Good (3 days), 4/5 = Easy (7 days)
-	const minutes = difficulty <= 1 ? 10 : 0;
-	const days =
-		difficulty <= 1 ? 0 : difficulty === 2 ? 1 : difficulty === 3 ? 3 : 7;
-	const next = new Date(base);
-	if (minutes) next.setMinutes(next.getMinutes() + minutes);
-	if (days) next.setDate(next.getDate() + days);
-	return next;
+// FSRS scheduler instance with default parameters
+const fsrs = new FSRS();
+
+// Convert FSRS rating (1-4) from UI rating (1-5)
+function mapUIRatingToFSRS(uiRating: number): number {
+	// UI: 1=Again, 2=Hard, 3=Good, 4=Easy, 5=Easy
+	// FSRS: 1=Again, 2=Hard, 3=Good, 4=Easy
+	return Math.min(uiRating, 4);
+}
+
+// Build FSRSItem from card reviews
+async function buildFSRSItem(ctx: any, cardId: string, userId: string): Promise<FSRSItem> {
+	const reviews = await ctx.db.query.cardReviews.findMany({
+		where: and(eq(cardReviews.cardId, cardId), eq(cardReviews.userId, userId)),
+		orderBy: cardReviews.reviewedAt,
+	});
+
+	const fsrsReviews = reviews.map((review, index) => {
+		const deltaT = index === 0 ? 0 : 
+			Math.floor((review.reviewedAt.getTime() - reviews[index - 1].reviewedAt.getTime()) / (1000 * 60 * 60 * 24));
+		return new FSRSReview(review.rating, deltaT);
+	});
+
+	return new FSRSItem(fsrsReviews);
 }
 
 export const flashcardsRouter = createTRPCRouter({
@@ -198,61 +210,36 @@ export const flashcardsRouter = createTRPCRouter({
 			const session = await auth.api.getSession({ headers: ctx.headers });
 			if (!session) return [];
 
-			// latest review timestamp per card for this user
-			const latest = ctx.db
-				.select({
-					cardId: cardReviews.cardId,
-					lastReviewed: max(cardReviews.reviewedAt).as("lastReviewed"),
-				})
-				.from(cardReviews)
-				.where(eq(cardReviews.userId, session.user.id))
-				.groupBy(cardReviews.cardId)
-				.as("latest");
-
-			// next due per card (row matching the latest reviewedAt)
-			const nextDue = ctx.db
-				.select({
-					cardId: cardReviews.cardId,
-					nextReviewAt: cardReviews.nextReviewAt,
-				})
-				.from(cardReviews)
-				.innerJoin(
-					latest,
-					and(
-						eq(cardReviews.cardId, latest.cardId),
-						eq(cardReviews.reviewedAt, latest.lastReviewed),
-					),
-				)
-				.as("nextDue");
-
 			const now = new Date();
 
-			// Cards in user's decks, due now (or never reviewed)
+			// Cards in user's decks that are due for review
 			const rows = await ctx.db
-				.select({ c: cards })
+				.select({
+					card: cards,
+				})
 				.from(cards)
 				.innerJoin(
 					decks,
 					and(eq(decks.id, cards.deckId), eq(decks.userId, session.user.id)),
 				)
-				.leftJoin(nextDue, eq(nextDue.cardId, cards.id))
-				.where(or(isNull(nextDue.nextReviewAt), lte(nextDue.nextReviewAt, now)))
-				.orderBy(desc(cards.createdAt))
+				.where(lte(cards.due, now))
+				.orderBy(cards.due)
 				.limit(input.limit);
 
-			return rows.map((r) => r.c);
+			return rows.map((r) => r.card);
 		}),
 
 	submitReview: publicProcedure
 		.input(
 			z.object({
 				cardId: z.string().uuid(),
-				difficulty: z.number().min(1).max(5),
+				rating: z.number().min(1).max(4), // FSRS uses 1-4 rating
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
 			const session = await auth.api.getSession({ headers: ctx.headers });
 			if (!session) throw new Error("Unauthorized");
+			
 			// Verify card belongs to a deck owned by the user
 			const cardRow = await ctx.db.query.cards.findFirst({
 				where: eq(cards.id, input.cardId),
@@ -267,29 +254,59 @@ export const flashcardsRouter = createTRPCRouter({
 			});
 			if (!deckRow) throw new Error("Forbidden");
 
-			// Get last nextReviewAt for this user/card
-			const last = await ctx.db.query.cardReviews.findFirst({
-				where: and(
-					eq(cardReviews.cardId, input.cardId),
-					eq(cardReviews.userId, session.user.id),
-				),
-				orderBy: (r, { desc }) => desc(r.reviewedAt),
-			});
-			const next = computeNextReviewAt(
-				input.difficulty,
-				last?.nextReviewAt ?? null,
-			);
+			// Build FSRS item from existing reviews
+			const fsrsItem = await buildFSRSItem(ctx, input.cardId, session.user.id);
+			
+			// Get current memory state (null if no reviews yet)
+			const currentMemoryState = fsrsItem.reviews.length > 0 ? 
+				fsrs.memoryState(fsrsItem) : null;
 
-			const [row] = await ctx.db
+			// Calculate days elapsed since last review or card creation
+			const lastReviewDate = fsrsItem.reviews.length > 0 ? 
+				(await ctx.db.query.cardReviews.findFirst({
+					where: and(eq(cardReviews.cardId, input.cardId), eq(cardReviews.userId, session.user.id)),
+					orderBy: (r, { desc }) => desc(r.reviewedAt),
+				}))?.reviewedAt : cardRow.createdAt;
+			
+			const daysElapsed = lastReviewDate ? 
+				Math.floor((Date.now() - lastReviewDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+
+			// Get next states from FSRS
+			const nextStates = fsrs.nextStates(currentMemoryState, 0.9, daysElapsed);
+			
+			// Select the appropriate state based on rating
+			const selectedState = input.rating === 1 ? nextStates.again :
+				input.rating === 2 ? nextStates.hard :
+				input.rating === 3 ? nextStates.good :
+				nextStates.easy;
+
+			// Calculate next due date
+			const nextDue = new Date(Date.now() + selectedState.interval * 24 * 60 * 60 * 1000);
+
+			// Insert the review record
+			const [reviewRow] = await ctx.db
 				.insert(cardReviews)
 				.values({
 					cardId: input.cardId,
 					userId: session.user.id,
-					difficulty: input.difficulty,
-					nextReviewAt: next,
+					rating: input.rating,
 				})
 				.returning();
-			return row;
+
+			// Update the card's due date and FSRS state
+			await ctx.db
+				.update(cards)
+				.set({
+					due: nextDue,
+					stability: selectedState.memory.stability,
+					difficulty: selectedState.memory.difficulty,
+					reps: (cardRow.reps || 0) + 1,
+					lapses: input.rating === 1 ? (cardRow.lapses || 0) + 1 : cardRow.lapses,
+					last_review: new Date(),
+				})
+				.where(eq(cards.id, input.cardId));
+
+			return reviewRow;
 		}),
 
 	// AI Generation
