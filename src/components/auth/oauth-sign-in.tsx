@@ -1,0 +1,63 @@
+"use client";
+
+import { signIn } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { FaGithub, FaGoogle } from "react-icons/fa";
+import type { IconType } from "react-icons";
+
+type OAuthSignInProps = {
+  onError?: (message: string) => void;
+  callbackURL?: string;
+  className?: string;
+};
+
+type ProviderId = "github" | "google";
+type ProviderDef = { id: ProviderId; label: string; icon: IconType };
+
+const DEFAULT_PROVIDERS: ProviderDef[] = [
+  { id: "github", label: "GitHub", icon: FaGithub },
+  { id: "google", label: "Google", icon: FaGoogle },
+];
+
+export function OAuthSignIn({ onError, callbackURL = "/dashboard", className }: OAuthSignInProps) {
+  const providers = DEFAULT_PROVIDERS;
+
+  return (
+    <div className={className}>
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <Separator />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">
+            Or continue with
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {providers.map((p) => {
+          const Icon = p.icon;
+          return (
+            <Button
+              key={p.id}
+              variant="outline"
+              onClick={async () => {
+                try {
+                  await signIn.social({ provider: p.id, callbackURL });
+                } catch (err) {
+                  onError?.(`${p.label} sign in failed`);
+                }
+              }}
+            >
+              <Icon className="mr-2 h-4 w-4" />
+              {p.label}
+            </Button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+

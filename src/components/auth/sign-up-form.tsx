@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { OAuthSignIn } from "./oauth-sign-in";
 
 export function SignUpForm() {
   const [name, setName] = useState("");
@@ -47,16 +48,16 @@ export function SignUpForm() {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-md">
       <CardHeader>
         <CardTitle>Create Account</CardTitle>
         <CardDescription>
           Enter your information to create a new account
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+      <CardContent className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="name">Name</Label>
             <Input
               id="name"
@@ -68,7 +69,7 @@ export function SignUpForm() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
@@ -80,7 +81,7 @@ export function SignUpForm() {
             />
           </div>
           
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
@@ -93,7 +94,7 @@ export function SignUpForm() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
             <Input
               id="confirmPassword"
@@ -114,6 +115,7 @@ export function SignUpForm() {
             {isLoading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
+        <OAuthSignIn />
       </CardContent>
     </Card>
   );

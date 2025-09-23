@@ -17,12 +17,12 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
-        <div className="space-y-8">
-          <div>
+        <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-bold tracking-tight">
               Welcome back, {session.user.name}!
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground">
               Manage your flashcard decks and track your study progress.
             </p>
           </div>
@@ -97,8 +97,8 @@ export default async function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <div className="text-center py-8 text-muted-foreground flex flex-col items-center gap-4">
+                <BookOpen className="h-12 w-12 opacity-50" />
                 <p>No recent activity</p>
                 <p className="text-sm">Create your first deck to see activity here</p>
               </div>
