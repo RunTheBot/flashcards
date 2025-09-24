@@ -133,8 +133,8 @@ export function StudyClient() {
 				<div className="grid gap-4">
 					<Flashcard
 						className="mx-auto max-w-xl"
-						front={<div className="font-medium text-xl">{current?.front}</div>}
-						back={<div className="text-lg">{current?.back}</div>}
+						front={<div className="whitespace-pre-wrap font-medium text-xl">{current?.front}</div>}
+						back={<div className="whitespace-pre-wrap text-lg">{current?.back}</div>}
 						isFlipped={isCardFlipped}
 						onFlip={setIsCardFlipped}
 					/>

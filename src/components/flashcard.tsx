@@ -51,12 +51,12 @@ export function Flashcard({
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
-					<div className="text-center">{front}</div>
+					<div className="whitespace-pre-wrap text-center">{front}</div>
 				</Card>
 
 				{/* Back of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground">
-					<div className="text-center">{back}</div>
+					<div className="whitespace-pre-wrap text-center">{back}</div>
 				</Card>
 			</button>
 		</div>
