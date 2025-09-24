@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/trpc/react";
-import { BookOpen, Trash2 } from "lucide-react";
+import { BookOpen, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -41,6 +41,17 @@ export function DecksClient() {
 		},
 	});
 
+	const updateDeck = api.flashcards.updateDeck.useMutation({
+		onSuccess: async () => {
+			await utils.flashcards.getDecks.invalidate();
+			setEditingDeck(null);
+			toast.success("Deck updated successfully!");
+		},
+		onError: (error) => {
+			toast.error(`Failed to update deck: ${error.message}`);
+		},
+	});
+
 	const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -48,6 +59,13 @@ export function DecksClient() {
 		id: string;
 		name: string;
 	} | null>(null);
+	const [editingDeck, setEditingDeck] = useState<{
+		id: string;
+		name: string;
+		description?: string;
+	} | null>(null);
+	const [editDeckName, setEditDeckName] = useState("");
+	const [editDeckDescription, setEditDeckDescription] = useState("");
 
 
 
@@ -69,6 +87,28 @@ export function DecksClient() {
 		if (deckToDelete) {
 			deleteDeck.mutate({ deckId: deckToDelete.id });
 			setDeckToDelete(null);
+		}
+	};
+
+	const startEditingDeck = (deck: { id: string; name: string; description?: string | null }) => {
+		setEditingDeck({ id: deck.id, name: deck.name, description: deck.description || undefined });
+		setEditDeckName(deck.name);
+		setEditDeckDescription(deck.description || "");
+	};
+
+	const cancelEditingDeck = () => {
+		setEditingDeck(null);
+		setEditDeckName("");
+		setEditDeckDescription("");
+	};
+
+	const saveEditedDeck = () => {
+		if (editingDeck && editDeckName.trim().length > 0) {
+			updateDeck.mutate({
+				deckId: editingDeck.id,
+				name: editDeckName,
+				description: editDeckDescription || undefined,
+			});
 		}
 	};
 
@@ -134,18 +174,31 @@ export function DecksClient() {
 										<div
 											className={`rounded-md border p-3 ${selectedDeckId === d.id ? "ring-2 ring-primary" : ""}`}
 										>
-											<button
-												type="button"
-												className="-m-2 w-full rounded-md p-2 text-left hover:bg-accent"
-												onClick={() => setSelectedDeckId(d.id)}
-											>
-												<div className="font-medium">{d.name}</div>
-												{d.description && (
-													<div className="text-muted-foreground text-sm">
-														{d.description}
-													</div>
-												)}
-											</button>
+											<div className="-m-2 rounded-md p-2">
+												<div className="flex items-center justify-between">
+													<button
+														type="button"
+														className="-m-1 flex-1 rounded-md p-1 text-left hover:bg-accent"
+														onClick={() => setSelectedDeckId(d.id)}
+													>
+														<div className="font-medium">{d.name}</div>
+														{d.description && (
+															<div className="text-muted-foreground text-sm">
+																{d.description}
+															</div>
+														)}
+													</button>
+													<Button
+														variant="ghost"
+														size="sm"
+														className="ml-2 h-6 w-6 p-0"
+														onClick={() => startEditingDeck(d)}
+														title="Edit deck name and description"
+													>
+														<Edit className="h-3 w-3" />
+													</Button>
+												</div>
+											</div>
 											<div className="mt-2 flex justify-between">
 												<Button
 													variant="outline"
@@ -205,6 +258,54 @@ export function DecksClient() {
 						</Button>
 						<Button variant="destructive" onClick={confirmDeleteDeck}>
 							Delete
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* Deck edit dialog */}
+			<Dialog open={!!editingDeck} onOpenChange={() => cancelEditingDeck()}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Edit Deck</DialogTitle>
+						<DialogDescription>
+							Update the name and description for "{editingDeck?.name}"
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-4 py-4">
+						<div className="grid gap-2">
+							<label htmlFor="edit-deck-name" className="font-medium text-sm">
+								Deck Name
+							</label>
+							<Input
+								id="edit-deck-name"
+								value={editDeckName}
+								onChange={(e) => setEditDeckName(e.target.value)}
+								placeholder="Enter deck name..."
+							/>
+						</div>
+						<div className="grid gap-2">
+							<label htmlFor="edit-deck-description" className="font-medium text-sm">
+								Description (optional)
+							</label>
+							<Textarea
+								id="edit-deck-description"
+								value={editDeckDescription}
+								onChange={(e) => setEditDeckDescription(e.target.value)}
+								placeholder="Enter deck description..."
+								className="min-h-[80px]"
+							/>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button variant="outline" onClick={cancelEditingDeck}>
+							Cancel
+						</Button>
+						<Button 
+							onClick={saveEditedDeck}
+							disabled={!editDeckName.trim() || updateDeck.isPending}
+						>
+							Save Changes
 						</Button>
 					</DialogFooter>
 				</DialogContent>

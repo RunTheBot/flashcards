@@ -9,6 +9,7 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	buildCardCountPrompt,
 	buildDeckNamePrompt,
+	buildDeckDescriptionPrompt,
 	buildFlashcardGenerationPrompt,
 	getAISettings,
 	getCardCountOptions,
@@ -93,6 +94,38 @@ export const flashcardsRouter = createTRPCRouter({
 					description: input.description,
 					userId: session.user.id,
 				})
+				.returning();
+			return row;
+		}),
+
+	updateDeck: publicProcedure
+		.input(
+			z.object({
+				deckId: z.string().uuid(),
+				name: z.string().min(1),
+				description: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const session = await auth.api.getSession({ headers: ctx.headers });
+			if (!session) throw new Error("Unauthorized");
+			// Ensure deck belongs to user
+			const deckRow = await ctx.db.query.decks.findFirst({
+				where: and(
+					eq(decks.id, input.deckId),
+					eq(decks.userId, session.user.id),
+				),
+			});
+			if (!deckRow) throw new Error("Deck not found");
+
+			const [row] = await ctx.db
+				.update(decks)
+				.set({
+					name: input.name,
+					description: input.description,
+					updatedAt: new Date(),
+				})
+				.where(eq(decks.id, input.deckId))
 				.returning();
 			return row;
 		}),
@@ -342,35 +375,50 @@ export const flashcardsRouter = createTRPCRouter({
 
 			let deckId = input.deckId;
 
-			// If no deckId provided, create a new deck with auto-generated name
+			// If no deckId provided, create a new deck with auto-generated name and description
 			if (!deckId) {
-				console.log("Generating deck name with light model...");
+				console.log("Generating deck name and description with light model...");
 
-				// Generate deck name using light model
-				const deckNameSchema = z.object({
+				// Generate deck name and description using light model
+				const deckMetadataSchema = z.object({
 					name: z
 						.string()
 						.describe(
 							"A concise, descriptive name for the flashcard deck (2-6 words)",
 						),
+					description: z
+						.string()
+						.describe(
+							"A helpful, informative description explaining what the deck covers (1-2 sentences)",
+						),
 				});
 
 				const deckNamePrompt = buildDeckNamePrompt(input.topic);
+				const deckDescriptionPrompt = buildDeckDescriptionPrompt(input.topic);
 
-				const deckNameResult = await generateObject({
-					model: hackclubLightModel,
-					schema: deckNameSchema,
-					prompt: deckNamePrompt,
-				});
+				// Generate name and description in parallel for efficiency
+				const [deckNameResult, deckDescriptionResult] = await Promise.all([
+					generateObject({
+						model: hackclubLightModel,
+						schema: z.object({ name: z.string() }),
+						prompt: deckNamePrompt,
+					}),
+					generateObject({
+						model: hackclubLightModel,
+						schema: z.object({ description: z.string() }),
+						prompt: deckDescriptionPrompt,
+					}),
+				]);
 
 				console.log(`Generated deck name: "${deckNameResult.object.name}"`);
+				console.log(`Generated deck description: "${deckDescriptionResult.object.description}"`);
 
-				// Create the deck with generated name
+				// Create the deck with generated name and description
 				const insertedDecks = await ctx.db
 					.insert(decks)
 					.values({
 						name: deckNameResult.object.name,
-						description: `AI-generated flashcards about: ${input.topic.substring(0, 100)}${input.topic.length > 100 ? "..." : ""}`,
+						description: deckDescriptionResult.object.description,
 						userId: session.user.id,
 					})
 					.returning();
