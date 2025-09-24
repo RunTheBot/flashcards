@@ -74,7 +74,7 @@ export const AI_SETTINGS: AISettings = {
 	generation: {
 		includeExamples: true,
 		progressiveComplexity: true,
-		maxTopicLength: 20000,
+		maxTopicLength: 200000,
 	},
 	prompts: {
 		deckName: {
