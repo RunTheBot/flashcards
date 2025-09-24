@@ -529,13 +529,13 @@ function DeckDetail({ deckId }: { deckId: string }) {
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Front
 												</div>
-												<div className="font-medium">{c.front}</div>
+												<div className="whitespace-pre-wrap font-medium">{c.front}</div>
 											</div>
 											<div>
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Back
 												</div>
-												<div className="text-sm">{c.back}</div>
+												<div className="whitespace-pre-wrap text-sm">{c.back}</div>
 											</div>
 										</div>
 										<div className="flex gap-2">
