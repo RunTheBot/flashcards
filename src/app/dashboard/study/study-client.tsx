@@ -99,7 +99,7 @@ export function StudyClient() {
 	}, [handleAnswer, isCardFlipped]);
 
 	// Determine the page title
-	const pageTitle = deck ? `Study: ${deck.name}` : "Today's Review";
+	const pageTitle = deck ? `Study: ${deck.name}` : "Study Session";
 	const emptyMessage = deck 
 		? `No cards due for review in "${deck.name}". Great job!`
 		: "No cards due right now. Great job!";

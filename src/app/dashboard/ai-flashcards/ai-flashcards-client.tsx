@@ -317,7 +317,7 @@ or
 										className="w-full justify-start"
 										size="sm"
 									>
-										<Link href="/dashboard/review">
+										<Link href="/dashboard/study">
 											<Zap className="mr-2 h-4 w-4" />
 											Start Studying
 										</Link>

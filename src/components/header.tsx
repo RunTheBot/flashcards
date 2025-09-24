@@ -25,11 +25,6 @@ const navigationItems = [
 		href: "/dashboard/study",
 		id: "study",
 	},
-	{
-		label: "Review",
-		href: "/dashboard/review",
-		id: "review",
-	},
 ];
 
 export function Header() {

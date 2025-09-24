@@ -111,7 +111,7 @@ export default async function DashboardPage() {
 									variant="outline"
 									className="flex items-center gap-2"
 								>
-									<Link href="/dashboard/review">
+									<Link href="/dashboard/study">
 										<Play className="h-4 w-4" />
 										Start Studying
 									</Link>
