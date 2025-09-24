@@ -1,24 +1,14 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 
 export async function middleware(request: NextRequest) {
 	// Check if the request is for a dashboard route
 	if (request.nextUrl.pathname.startsWith("/dashboard")) {
-		try {
-			// Get the session from the request
-			const session = await auth.api.getSession({
-				headers: request.headers,
-			});
-
-			// If no session exists, redirect to sign-in
-			if (!session) {
-				const signInUrl = new URL("/auth/signin", request.url);
-				signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-				return NextResponse.redirect(signInUrl);
-			}
-		} catch (error) {
-			// If there's an error getting the session, redirect to sign-in
+		// Check for session cookie (Better Auth uses 'better-auth.session_token' by default)
+		const sessionCookie = request.cookies.get("better-auth.session_token");
+		
+		// If no session cookie exists, redirect to sign-in
+		if (!sessionCookie || !sessionCookie.value) {
 			const signInUrl = new URL("/auth/signin", request.url);
 			signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
 			return NextResponse.redirect(signInUrl);
