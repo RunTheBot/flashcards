@@ -1,14 +1,15 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
 export async function middleware(request: NextRequest) {
 	// Check if the request is for a dashboard route
 	if (request.nextUrl.pathname.startsWith("/dashboard")) {
-		// Check for session cookie (Better Auth uses 'better-auth.session_token' by default)
-		const sessionCookie = request.cookies.get("better-auth.session_token");
+		// Check for session cookie using Better Auth utility
+		const sessionCookie = getSessionCookie(request);
 		
 		// If no session cookie exists, redirect to sign-in
-		if (!sessionCookie || !sessionCookie.value) {
+		if (!sessionCookie) {
 			const signInUrl = new URL("/auth/signin", request.url);
 			signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
 			return NextResponse.redirect(signInUrl);

@@ -4,9 +4,9 @@ import { SignUpForm } from "@/components/auth/sign-up-form";
 import { useSession } from "@/lib/auth-client";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
-export default function SignUpPage() {
+function SignUpContent() {
 	const { data: session, isPending } = useSession();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -56,5 +56,20 @@ export default function SignUpPage() {
 				<SignUpForm />
 			</div>
 		</div>
+	);
+}
+
+export default function SignUpPage() {
+	return (
+		<Suspense fallback={
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="text-center">
+					<div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+					<p className="mt-2 text-muted-foreground">Loading...</p>
+				</div>
+			</div>
+		}>
+			<SignUpContent />
+		</Suspense>
 	);
 }
