@@ -1,15 +1,15 @@
 import { and, desc, eq, isNull, lte, max, or } from "drizzle-orm";
+import { FSRS, Rating, createEmptyCard, generatorParameters } from "ts-fsrs";
+import type { Card, Grade, RecordLog, RecordLogItem } from "ts-fsrs";
 import { z } from "zod";
-import { createEmptyCard, Rating, FSRS, generatorParameters } from "ts-fsrs";
-import type { Card, RecordLogItem, RecordLog, Grade } from "ts-fsrs";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
 	buildCardCountPrompt,
-	buildDeckNamePrompt,
 	buildDeckDescriptionPrompt,
+	buildDeckNamePrompt,
 	buildFlashcardGenerationPrompt,
 	getAISettings,
 	getCardCountOptions,
@@ -28,16 +28,26 @@ function mapUIRatingToFSRS(uiRating: number): Grade {
 	// ts-fsrs: Rating.Again=1, Rating.Hard=2, Rating.Good=3, Rating.Easy=4
 	// Grade excludes Rating.Manual (0)
 	switch (uiRating) {
-		case 1: return Rating.Again as Grade;
-		case 2: return Rating.Hard as Grade;
-		case 3: return Rating.Good as Grade;
-		case 4: return Rating.Easy as Grade;
-		default: return Rating.Good as Grade;
+		case 1:
+			return Rating.Again as Grade;
+		case 2:
+			return Rating.Hard as Grade;
+		case 3:
+			return Rating.Good as Grade;
+		case 4:
+			return Rating.Easy as Grade;
+		default:
+			return Rating.Good as Grade;
 	}
 }
 
 // Build Card state from card reviews by replaying them
-async function buildCardFromReviews(ctx: { db: typeof import("@/server/db").db }, cardId: string, userId: string, cardCreatedAt: Date): Promise<Card> {
+async function buildCardFromReviews(
+	ctx: { db: typeof import("@/server/db").db },
+	cardId: string,
+	userId: string,
+	cardCreatedAt: Date,
+): Promise<Card> {
 	const reviews = await ctx.db.query.cardReviews.findMany({
 		where: and(eq(cardReviews.cardId, cardId), eq(cardReviews.userId, userId)),
 		orderBy: cardReviews.reviewedAt,
@@ -49,7 +59,10 @@ async function buildCardFromReviews(ctx: { db: typeof import("@/server/db").db }
 	// Replay all reviews to get the current card state
 	for (const review of reviews) {
 		const grade = mapUIRatingToFSRS(review.rating);
-		const schedulingCards: RecordLog = fsrsScheduler.repeat(card, review.reviewedAt);
+		const schedulingCards: RecordLog = fsrsScheduler.repeat(
+			card,
+			review.reviewedAt,
+		);
 		card = schedulingCards[grade].card;
 	}
 
@@ -249,9 +262,9 @@ export const flashcardsRouter = createTRPCRouter({
 	getDailyQueue: publicProcedure
 		.input(
 			z
-				.object({ 
+				.object({
 					limit: z.number().min(1).max(100).default(20),
-					deckId: z.string().uuid().optional()
+					deckId: z.string().uuid().optional(),
 				})
 				.default({ limit: 20 }),
 		)
@@ -263,7 +276,7 @@ export const flashcardsRouter = createTRPCRouter({
 
 			// Build where conditions
 			const whereConditions = [lte(cards.due, now)];
-			
+
 			// If deckId is provided, add it to the where conditions
 			if (input.deckId) {
 				whereConditions.push(eq(cards.deckId, input.deckId));
@@ -296,7 +309,7 @@ export const flashcardsRouter = createTRPCRouter({
 		.mutation(async ({ ctx, input }) => {
 			const session = await auth.api.getSession({ headers: ctx.headers });
 			if (!session) throw new Error("Unauthorized");
-			
+
 			// Verify card belongs to a deck owned by the user
 			const cardRow = await ctx.db.query.cards.findFirst({
 				where: eq(cards.id, input.cardId),
@@ -312,15 +325,20 @@ export const flashcardsRouter = createTRPCRouter({
 			if (!deckRow) throw new Error("Forbidden");
 
 			// Build current card state from existing reviews
-			const currentCard = await buildCardFromReviews(ctx, input.cardId, session.user.id, cardRow.createdAt);
-			
+			const currentCard = await buildCardFromReviews(
+				ctx,
+				input.cardId,
+				session.user.id,
+				cardRow.createdAt,
+			);
+
 			// Get the rating for this review
 			const rating = mapUIRatingToFSRS(input.rating);
-			
+
 			// Get scheduling options for this review
 			const now = new Date();
 			const schedulingCards: RecordLog = fsrsScheduler.repeat(currentCard, now);
-			
+
 			// Get the updated card and log for the selected rating
 			const selectedScheduling = schedulingCards[rating];
 			const updatedCard = selectedScheduling.card;
@@ -411,7 +429,9 @@ export const flashcardsRouter = createTRPCRouter({
 				]);
 
 				console.log(`Generated deck name: "${deckNameResult.object.name}"`);
-				console.log(`Generated deck description: "${deckDescriptionResult.object.description}"`);
+				console.log(
+					`Generated deck description: "${deckDescriptionResult.object.description}"`,
+				);
 
 				// Create the deck with generated name and description
 				const insertedDecks = await ctx.db

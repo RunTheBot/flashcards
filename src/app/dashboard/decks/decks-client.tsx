@@ -67,8 +67,6 @@ export function DecksClient() {
 	const [editDeckName, setEditDeckName] = useState("");
 	const [editDeckDescription, setEditDeckDescription] = useState("");
 
-
-
 	const handleDeleteDeck = (
 		deck: { id: string; name: string },
 		event: React.MouseEvent,
@@ -90,8 +88,16 @@ export function DecksClient() {
 		}
 	};
 
-	const startEditingDeck = (deck: { id: string; name: string; description?: string | null }) => {
-		setEditingDeck({ id: deck.id, name: deck.name, description: deck.description || undefined });
+	const startEditingDeck = (deck: {
+		id: string;
+		name: string;
+		description?: string | null;
+	}) => {
+		setEditingDeck({
+			id: deck.id,
+			name: deck.name,
+			description: deck.description || undefined,
+		});
 		setEditDeckName(deck.name);
 		setEditDeckDescription(deck.description || "");
 	};
@@ -155,69 +161,75 @@ export function DecksClient() {
 							<Button variant="outline" size="sm" asChild>
 								<Link href="/dashboard/study">
 									<BookOpen className="mr-2 h-4 w-4" />
-									Study All
 								</Link>
 							</Button>
 						</CardTitle>
 					</CardHeader>
-					<CardContent>
+					<CardContent className="grid gap-3">
 						{isLoading ? (
 							<div className="text-muted-foreground">Loading...</div>
 						) : !decks || decks.length === 0 ? (
-							<div className="text-muted-foreground">
+							<div className="py-8 text-center text-muted-foreground">
 								No decks yet. Create your first deck.
 							</div>
 						) : (
-							<ul className="grid gap-2">
+							<ul className="grid gap-3">
 								{decks.map((d) => (
-									<li key={d.id}>
-										<div
-											className={`rounded-md border p-3 ${selectedDeckId === d.id ? "ring-2 ring-primary" : ""}`}
-										>
-											<div className="-m-2 rounded-md p-2">
-												<div className="flex items-center justify-between">
-													<button
-														type="button"
-														className="-m-1 flex-1 rounded-md p-1 text-left hover:bg-accent"
-														onClick={() => setSelectedDeckId(d.id)}
-													>
-														<div className="font-medium">{d.name}</div>
-														{d.description && (
-															<div className="text-muted-foreground text-sm">
-																{d.description}
-															</div>
-														)}
-													</button>
-													<Button
-														variant="ghost"
-														size="sm"
-														className="ml-2 h-6 w-6 p-0"
-														onClick={() => startEditingDeck(d)}
-														title="Edit deck name and description"
-													>
-														<Edit className="h-3 w-3" />
-													</Button>
+									<li key={d.id} className="group relative">
+										<button
+											type="button"
+											onClick={() => setSelectedDeckId(d.id)}
+											className="absolute inset-0 h-full w-full text-left"
+											aria-label={`Select deck: ${d.name}`}
+										/>
+										<div className="${ selectedDeckId === d.id ? 'ring-2 : } relative z-10 flex items-center justify-between rounded-lg border 'hover:border-primary/50' bg-card p-4 ring-primary' transition-all hover:shadow-md">
+											<div className="flex-1 pr-4">
+												<div className="font-medium text-foreground">
+													{d.name}
 												</div>
+												{d.description && (
+													<div className="line-clamp-1 text-muted-foreground text-sm">
+														{d.description}
+													</div>
+												)}
 											</div>
-											<div className="mt-2 flex justify-between">
+											<div className="flex items-center gap-2">
 												<Button
 													variant="outline"
 													size="sm"
 													asChild
+													className="relative z-20"
+													onClick={(e) => e.stopPropagation()}
 												>
-													<Link href={`/dashboard/study?deckId=${d.id}`}>
+													<Link
+														href={`/dashboard/study?deckId=${d.id}`}
+														className="flex items-center"
+													>
 														<BookOpen className="mr-2 h-4 w-4" />
 														Study
 													</Link>
 												</Button>
 												<Button
 													variant="ghost"
-													size="sm"
-													className="text-destructive hover:text-destructive"
-													onClick={(e) =>
-														handleDeleteDeck({ id: d.id, name: d.name }, e)
-													}
-													title="Click to delete (Ctrl+Shift+Click for instant delete)"
+													size="icon"
+													className="relative z-20 text-muted-foreground hover:text-foreground"
+													onClick={(e) => {
+														e.stopPropagation();
+														startEditingDeck(d);
+													}}
+													title="Edit deck"
+												>
+													<Edit className="h-4 w-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon"
+													className="relative z-20 text-destructive hover:bg-destructive/10 hover:text-destructive"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleDeleteDeck({ id: d.id, name: d.name }, e);
+													}}
+													title="Delete deck"
 												>
 													<Trash2 className="h-4 w-4" />
 												</Button>
@@ -285,7 +297,10 @@ export function DecksClient() {
 							/>
 						</div>
 						<div className="grid gap-2">
-							<label htmlFor="edit-deck-description" className="font-medium text-sm">
+							<label
+								htmlFor="edit-deck-description"
+								className="font-medium text-sm"
+							>
 								Description (optional)
 							</label>
 							<Textarea
@@ -301,7 +316,7 @@ export function DecksClient() {
 						<Button variant="outline" onClick={cancelEditingDeck}>
 							Cancel
 						</Button>
-						<Button 
+						<Button
 							onClick={saveEditedDeck}
 							disabled={!editDeckName.trim() || updateDeck.isPending}
 						>
@@ -529,13 +544,17 @@ function DeckDetail({ deckId }: { deckId: string }) {
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Front
 												</div>
-												<div className="whitespace-pre-wrap font-medium">{c.front}</div>
+												<div className="whitespace-pre-wrap font-medium">
+													{c.front}
+												</div>
 											</div>
 											<div>
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Back
 												</div>
-												<div className="whitespace-pre-wrap text-sm">{c.back}</div>
+												<div className="whitespace-pre-wrap text-sm">
+													{c.back}
+												</div>
 											</div>
 										</div>
 										<div className="flex gap-2">

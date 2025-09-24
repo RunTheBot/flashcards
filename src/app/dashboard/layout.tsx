@@ -1,9 +1,9 @@
 "use client";
 
+import { Header } from "@/components/header";
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Header } from "@/components/header";
 
 export default function DashboardLayout({
 	children,
@@ -41,9 +41,7 @@ export default function DashboardLayout({
 	return (
 		<div className="min-h-screen bg-background">
 			<Header />
-			<main className="container mx-auto px-4 py-8">
-				{children}
-			</main>
+			<main className="container mx-auto px-4 py-8">{children}</main>
 		</div>
 	);
 }
