@@ -69,7 +69,7 @@ export function StudyClient() {
 			setIsCardFlipped(false);
 
 			// Small delay to allow flip animation to complete
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			// await new Promise((resolve) => setTimeout(resolve, 10));
 
 			try {
 				// Submit review; queue refetch will remove current card
