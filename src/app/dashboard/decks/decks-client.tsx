@@ -161,6 +161,7 @@ export function DecksClient() {
 							<Button variant="outline" size="sm" asChild>
 								<Link href="/dashboard/study">
 									<BookOpen className="mr-2 h-4 w-4" />
+									Study All
 								</Link>
 							</Button>
 						</CardTitle>
@@ -175,68 +176,66 @@ export function DecksClient() {
 						) : (
 							<ul className="grid gap-3">
 								{decks.map((d) => (
-									<li key={d.id} className="group relative">
-										<button
-											type="button"
-											onClick={() => setSelectedDeckId(d.id)}
-											className="absolute inset-0 h-full w-full text-left"
-											aria-label={`Select deck: ${d.name}`}
-										/>
-										<div className="${ selectedDeckId === d.id ? 'ring-2 : } relative z-10 flex items-center justify-between rounded-lg border 'hover:border-primary/50' bg-card p-4 ring-primary' transition-all hover:shadow-md">
-											<div className="flex-1 pr-4">
-												<div className="font-medium text-foreground">
-													{d.name}
+								<li key={d.id} className="group relative">
+									<div
+										className={`relative flex items-center justify-between rounded-lg border bg-card p-4 transition-all hover:shadow-md ${
+											selectedDeckId === d.id ? "ring-2 ring-primary" : "hover:border-primary/50"
+										}`}
+									>
+										<div className="flex-1 pr-4">
+											<div className="font-medium text-foreground">{d.name}</div>
+											{d.description && (
+												<div className="line-clamp-1 text-muted-foreground text-sm">
+													{d.description}
 												</div>
-												{d.description && (
-													<div className="line-clamp-1 text-muted-foreground text-sm">
-														{d.description}
-													</div>
-												)}
-											</div>
-											<div className="flex items-center gap-2">
-												<Button
-													variant="outline"
-													size="sm"
-													asChild
-													className="relative z-20"
-													onClick={(e) => e.stopPropagation()}
-												>
-													<Link
-														href={`/dashboard/study?deckId=${d.id}`}
-														className="flex items-center"
-													>
-														<BookOpen className="mr-2 h-4 w-4" />
-														Study
-													</Link>
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="relative z-20 text-muted-foreground hover:text-foreground"
-													onClick={(e) => {
-														e.stopPropagation();
-														startEditingDeck(d);
-													}}
-													title="Edit deck"
-												>
-													<Edit className="h-4 w-4" />
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon"
-													className="relative z-20 text-destructive hover:bg-destructive/10 hover:text-destructive"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleDeleteDeck({ id: d.id, name: d.name }, e);
-													}}
-													title="Delete deck"
-												>
-													<Trash2 className="h-4 w-4" />
-												</Button>
-											</div>
+											)}
 										</div>
-									</li>
-								))}
+										<div className="relative z-20 flex items-center gap-2">
+											<Button
+												variant="outline"
+												size="sm"
+												asChild
+												onClick={(e) => e.stopPropagation()}
+											>
+												<Link href={`/dashboard/study?deckId=${d.id}`} className="flex items-center">
+													<BookOpen className="mr-2 h-4 w-4" />
+													Study
+												</Link>
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="text-muted-foreground hover:text-foreground"
+												onClick={(e) => {
+													e.stopPropagation();
+													startEditingDeck(d);
+												}}
+												title="Edit deck"
+											>
+												<Edit className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon"
+												className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+												onClick={(e) => {
+													e.stopPropagation();
+													handleDeleteDeck({ id: d.id, name: d.name }, e);
+												}}
+												title="Delete deck"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
+									</div>
+									<button
+										type="button"
+										onClick={() => setSelectedDeckId(d.id)}
+										className="absolute inset-0 z-10 h-full w-full rounded-lg"
+										aria-label={`Select deck: ${d.name}`}
+									/>
+								</li>
+							))}
 							</ul>
 						)}
 					</CardContent>
