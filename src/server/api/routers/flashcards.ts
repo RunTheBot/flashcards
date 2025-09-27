@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
-import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/api/trpc";
 import {
 	buildCardCountPrompt,
 	buildDeckDescriptionPrompt,
@@ -83,35 +83,31 @@ export const flashcardsRouter = createTRPCRouter({
 	}),
 
 	// Decks
-	getDecks: publicProcedure.query(async ({ ctx }) => {
-		const session = await auth.api.getSession({ headers: ctx.headers });
-		if (!session) return [];
+	getDecks: protectedProcedure.query(async ({ ctx }) => {
 		const rows = await ctx.db.query.decks.findMany({
-			where: eq(decks.userId, session.user.id),
+			where: eq(decks.userId, ctx.session.user.id),
 			orderBy: (d, { asc }) => asc(d.createdAt),
 		});
 		return rows;
 	}),
 
-	createDeck: publicProcedure
+	createDeck: protectedProcedure
 		.input(
 			z.object({ name: z.string().min(1), description: z.string().optional() }),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			const [row] = await ctx.db
 				.insert(decks)
 				.values({
 					name: input.name,
 					description: input.description,
-					userId: session.user.id,
+					userId: ctx.session.user.id,
 				})
 				.returning();
 			return row;
 		}),
 
-	updateDeck: publicProcedure
+	updateDeck: protectedProcedure
 		.input(
 			z.object({
 				deckId: z.string().uuid(),
@@ -120,13 +116,11 @@ export const flashcardsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			// Ensure deck belongs to user
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, input.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Deck not found");
@@ -143,16 +137,14 @@ export const flashcardsRouter = createTRPCRouter({
 			return row;
 		}),
 
-	deleteDeck: publicProcedure
+	deleteDeck: protectedProcedure
 		.input(z.object({ deckId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			// Ensure deck belongs to user
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, input.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Deck not found");
@@ -163,11 +155,18 @@ export const flashcardsRouter = createTRPCRouter({
 		}),
 
 	// Cards
-	getCards: publicProcedure
+	getCards: protectedProcedure
 		.input(z.object({ deckId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) return [];
+			// First verify the deck belongs to the user
+			const deck = await ctx.db.query.decks.findFirst({
+				where: and(
+					eq(decks.id, input.deckId),
+					eq(decks.userId, ctx.session.user.id),
+				),
+			});
+			if (!deck) throw new Error("Deck not found");
+
 			const rows = await ctx.db.query.cards.findMany({
 				where: eq(cards.deckId, input.deckId),
 				orderBy: (c, { asc }) => asc(c.createdAt),
@@ -175,7 +174,7 @@ export const flashcardsRouter = createTRPCRouter({
 			return rows;
 		}),
 
-	createCard: publicProcedure
+	createCard: protectedProcedure
 		.input(
 			z.object({
 				deckId: z.string().uuid(),
@@ -184,24 +183,27 @@ export const flashcardsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			// Ensure deck belongs to user
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, input.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Deck not found");
+
 			const [row] = await ctx.db
 				.insert(cards)
-				.values({ deckId: input.deckId, front: input.front, back: input.back })
+				.values({ 
+					deckId: input.deckId, 
+					front: input.front, 
+					back: input.back 
+				})
 				.returning();
 			return row;
 		}),
 
-	updateCard: publicProcedure
+	updateCard: protectedProcedure
 		.input(
 			z.object({
 				cardId: z.string().uuid(),
@@ -210,8 +212,6 @@ export const flashcardsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			// Ensure card belongs to a deck owned by the user
 			const cardRow = await ctx.db.query.cards.findFirst({
 				where: eq(cards.id, input.cardId),
@@ -221,7 +221,7 @@ export const flashcardsRouter = createTRPCRouter({
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, cardRow.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Forbidden");
@@ -234,11 +234,9 @@ export const flashcardsRouter = createTRPCRouter({
 			return row;
 		}),
 
-	deleteCard: publicProcedure
+	deleteCard: protectedProcedure
 		.input(z.object({ cardId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
 			// Ensure card belongs to a deck owned by the user
 			const cardRow = await ctx.db.query.cards.findFirst({
 				where: eq(cards.id, input.cardId),
@@ -248,7 +246,7 @@ export const flashcardsRouter = createTRPCRouter({
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, cardRow.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Forbidden");
@@ -259,7 +257,7 @@ export const flashcardsRouter = createTRPCRouter({
 		}),
 
 	// Review queue: due cards for the user (from their decks)
-	getDailyQueue: publicProcedure
+	getDailyQueue: protectedProcedure
 		.input(
 			z
 				.object({
@@ -269,9 +267,6 @@ export const flashcardsRouter = createTRPCRouter({
 				.default({ limit: 20 }),
 		)
 		.query(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) return [];
-
 			const now = new Date();
 
 			// Build where conditions
@@ -290,7 +285,7 @@ export const flashcardsRouter = createTRPCRouter({
 				.from(cards)
 				.innerJoin(
 					decks,
-					and(eq(decks.id, cards.deckId), eq(decks.userId, session.user.id)),
+					and(eq(decks.id, cards.deckId), eq(decks.userId, ctx.session.user.id)),
 				)
 				.where(and(...whereConditions))
 				.orderBy(cards.due)
@@ -299,7 +294,7 @@ export const flashcardsRouter = createTRPCRouter({
 			return rows.map((r) => r.card);
 		}),
 
-	submitReview: publicProcedure
+	submitReview: protectedProcedure
 		.input(
 			z.object({
 				cardId: z.string().uuid(),
@@ -307,9 +302,6 @@ export const flashcardsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
-
 			// Verify card belongs to a deck owned by the user
 			const cardRow = await ctx.db.query.cards.findFirst({
 				where: eq(cards.id, input.cardId),
@@ -319,7 +311,7 @@ export const flashcardsRouter = createTRPCRouter({
 			const deckRow = await ctx.db.query.decks.findFirst({
 				where: and(
 					eq(decks.id, cardRow.deckId),
-					eq(decks.userId, session.user.id),
+					eq(decks.userId, ctx.session.user.id),
 				),
 			});
 			if (!deckRow) throw new Error("Forbidden");
@@ -328,33 +320,25 @@ export const flashcardsRouter = createTRPCRouter({
 			const currentCard = await buildCardFromReviews(
 				ctx,
 				input.cardId,
-				session.user.id,
+				ctx.session.user.id,
 				cardRow.createdAt,
 			);
 
 			// Get the rating for this review
 			const rating = mapUIRatingToFSRS(input.rating);
-
-			// Get scheduling options for this review
-			const now = new Date();
-			const schedulingCards: RecordLog = fsrsScheduler.repeat(currentCard, now);
-
-			// Get the updated card and log for the selected rating
-			const selectedScheduling = schedulingCards[rating];
-			const updatedCard = selectedScheduling.card;
-			const reviewLog = selectedScheduling.log;
-
+{{ ... }}
 			// Insert the review record
 			const [reviewRow] = await ctx.db
 				.insert(cardReviews)
 				.values({
 					cardId: input.cardId,
-					userId: session.user.id,
+					userId: ctx.session.user.id,
 					rating: input.rating,
 				})
 				.returning();
 
 			// Update the card's state with new FSRS values
+{{ ... }}
 			await ctx.db
 				.update(cards)
 				.set({
@@ -375,7 +359,7 @@ export const flashcardsRouter = createTRPCRouter({
 		}),
 
 	// AI Generation
-	generateFlashcards: publicProcedure
+	generateFlashcards: protectedProcedure
 		.input(
 			z.object({
 				deckId: z.string().uuid().optional(),
@@ -439,9 +423,9 @@ export const flashcardsRouter = createTRPCRouter({
 					.values({
 						name: deckNameResult.object.name,
 						description: deckDescriptionResult.object.description,
-						userId: session.user.id,
+						userId: ctx.session.user.id,
 					})
-					.returning();
+					.returning({ select: { id: true } });
 
 				const deck = insertedDecks[0];
 				if (!deck) {
