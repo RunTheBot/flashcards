@@ -9,7 +9,8 @@ import { TRPCReactProvider } from "@/trpc/react";
 
 export const metadata: Metadata = {
 	title: "Flashcards by Aaron",
-	description: "AI-powered spaced repetition flashcard app with FSRS V6 (Default)",
+	description:
+		"AI-powered spaced repetition flashcard app with FSRS V6 (Default)",
 	icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

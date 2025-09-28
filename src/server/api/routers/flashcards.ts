@@ -5,7 +5,11 @@ import { z } from "zod";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
-import { createTRPCRouter, publicProcedure, protectedProcedure } from "@/server/api/trpc";
+import {
+	createTRPCRouter,
+	protectedProcedure,
+	publicProcedure,
+} from "@/server/api/trpc";
 import {
 	buildCardCountPrompt,
 	buildDeckDescriptionPrompt,
@@ -91,6 +95,17 @@ export const flashcardsRouter = createTRPCRouter({
 		return rows;
 	}),
 
+	getStudyingDecks: protectedProcedure.query(async ({ ctx }) => {
+		const rows = await ctx.db.query.decks.findMany({
+			where: and(
+				eq(decks.userId, ctx.session.user.id),
+				eq(decks.studying, true),
+			),
+			orderBy: (d, { asc }) => asc(d.createdAt),
+		});
+		return rows;
+	}),
+
 	createDeck: protectedProcedure
 		.input(
 			z.object({ name: z.string().min(1), description: z.string().optional() }),
@@ -113,6 +128,7 @@ export const flashcardsRouter = createTRPCRouter({
 				deckId: z.string().uuid(),
 				name: z.string().min(1),
 				description: z.string().optional(),
+				studying: z.boolean().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -130,6 +146,7 @@ export const flashcardsRouter = createTRPCRouter({
 				.set({
 					name: input.name,
 					description: input.description,
+					studying: input.studying,
 					updatedAt: new Date(),
 				})
 				.where(eq(decks.id, input.deckId))
@@ -194,10 +211,10 @@ export const flashcardsRouter = createTRPCRouter({
 
 			const [row] = await ctx.db
 				.insert(cards)
-				.values({ 
-					deckId: input.deckId, 
-					front: input.front, 
-					back: input.back 
+				.values({
+					deckId: input.deckId,
+					front: input.front,
+					back: input.back,
 				})
 				.returning();
 			return row;
@@ -275,6 +292,8 @@ export const flashcardsRouter = createTRPCRouter({
 			// If deckId is provided, add it to the where conditions
 			if (input.deckId) {
 				whereConditions.push(eq(cards.deckId, input.deckId));
+			} else {
+				whereConditions.push(eq(decks.studying, true));
 			}
 
 			// Cards in user's decks that are due for review
@@ -285,7 +304,10 @@ export const flashcardsRouter = createTRPCRouter({
 				.from(cards)
 				.innerJoin(
 					decks,
-					and(eq(decks.id, cards.deckId), eq(decks.userId, ctx.session.user.id)),
+					and(
+						eq(decks.id, cards.deckId),
+						eq(decks.userId, ctx.session.user.id),
+					),
 				)
 				.where(and(...whereConditions))
 				.orderBy(cards.due)
@@ -423,14 +445,14 @@ export const flashcardsRouter = createTRPCRouter({
 				);
 
 				// Create the deck with generated name and description
-				const insertedDecks = await ctx.db
+				const insertedDecks: { id: string; name: string }[] = await ctx.db
 					.insert(decks)
 					.values({
 						name: deckNameResult.object.name,
 						description: deckDescriptionResult.object.description,
 						userId: ctx.session.user.id,
 					})
-					.returning({ select: { id: true } });
+					.returning();
 
 				const deck = insertedDecks[0];
 				if (!deck) {
@@ -442,7 +464,10 @@ export const flashcardsRouter = createTRPCRouter({
 			} else {
 				// Ensure existing deck belongs to user
 				const deckRow = await ctx.db.query.decks.findFirst({
-					where: and(eq(decks.id, deckId), eq(decks.userId, session.user.id)),
+					where: and(
+						eq(decks.id, deckId),
+						eq(decks.userId, ctx.session.user.id),
+					),
 				});
 				if (!deckRow) throw new Error("Deck not found");
 			}
@@ -515,16 +540,18 @@ export const flashcardsRouter = createTRPCRouter({
 
 			// Insert generated flashcards into the database
 			const generatedCards = [];
-			for (const flashcard of result.object.flashcards) {
-				const [card] = await ctx.db
-					.insert(cards)
-					.values({
-						deckId: deckId,
-						front: flashcard.front,
-						back: flashcard.back,
-					})
-					.returning();
-				generatedCards.push(card);
+			if (deckId) {
+				for (const flashcard of result.object.flashcards) {
+					const [card] = await ctx.db
+						.insert(cards)
+						.values({
+							deckId: deckId,
+							front: flashcard.front,
+							back: flashcard.back,
+						})
+						.returning();
+					generatedCards.push(card);
+				}
 			}
 
 			console.log(

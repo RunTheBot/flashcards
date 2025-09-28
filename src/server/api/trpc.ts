@@ -10,8 +10,8 @@ import { initTRPC } from "@trpc/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { db } from "@/server/db";
 import { auth } from "@/lib/auth";
+import { db } from "@/server/db";
 
 /**
  * 1. CONTEXT
@@ -26,12 +26,12 @@ import { auth } from "@/lib/auth";
  * @see https://trpc.io/docs/server/context
  */
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth.api.getSession({ headers: opts.headers });
-  return {
-    db,
-    session,
-    ...opts,
-  };
+	const session = await auth.api.getSession({ headers: opts.headers });
+	return {
+		db,
+		session,
+		...opts,
+	};
 };
 
 /**
@@ -111,15 +111,15 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
  * This will throw an error if the user is not authenticated
  */
 const isAuthed = t.middleware(async ({ ctx, next }) => {
-  if (!ctx.session) {
-    throw new Error("Not authenticated");
-  }
-  return next({
-    ctx: {
-      // Infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
-    },
-  });
+	if (!ctx.session) {
+		throw new Error("Not authenticated");
+	}
+	return next({
+		ctx: {
+			// Infers the `session` as non-nullable
+			session: { ...ctx.session, user: ctx.session.user },
+		},
+	});
 });
 
 /**

@@ -113,6 +113,7 @@ export const decks = createTable("deck", {
 		.references(() => user.id, { onDelete: "cascade" }),
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+	studying: boolean("studying").notNull().default(false),
 });
 
 export const cards = createTable("card", {
