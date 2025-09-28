@@ -14,6 +14,8 @@ import {
 	buildCardCountPrompt,
 	buildDeckDescriptionPrompt,
 	buildDeckNamePrompt,
+	buildFlashcardConversionPrompt,
+	buildFlashcardGenerationFromNotesPrompt,
 	buildFlashcardGenerationPrompt,
 	getAISettings,
 	getCardCountOptions,
@@ -399,6 +401,7 @@ export const flashcardsRouter = createTRPCRouter({
 					.min(getAISettings().flashcards.minCardCount)
 					.max(getAISettings().flashcards.maxCardCount)
 					.optional(),
+				mode: z.enum(["topic", "notes", "converter"]),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -489,7 +492,7 @@ export const flashcardsRouter = createTRPCRouter({
 						.min(aiSettings.flashcards.minCardCount)
 						.max(aiSettings.flashcards.maxCardCount)
 						.describe(
-							`The optimal number of flashcards for this topic (${aiSettings.flashcards.minCardCount}-${aiSettings.flashcards.maxCardCount})`,
+							`The optimal number of flashcards for this input (${aiSettings.flashcards.minCardCount}-${aiSettings.flashcards.maxCardCount})`,
 						),
 					reasoning: z
 						.string()
@@ -525,7 +528,20 @@ export const flashcardsRouter = createTRPCRouter({
 					.describe("An array of flashcards generated from the topic"),
 			});
 
-			const prompt = buildFlashcardGenerationPrompt(input.topic, cardCount);
+			let prompt: string;
+			switch (input.mode) {
+				case "notes":
+					prompt = buildFlashcardGenerationFromNotesPrompt(
+						input.topic,
+						cardCount,
+					);
+					break;
+				case "converter":
+					prompt = buildFlashcardConversionPrompt(input.topic, cardCount);
+					break;
+				default:
+					prompt = buildFlashcardGenerationPrompt(input.topic, cardCount);
+			}
 
 			// Generate flashcards using GPT OSS 120B
 			console.log("Generating flashcards with GPT OSS 120B...");

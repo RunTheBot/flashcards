@@ -3,18 +3,22 @@
  * These settings control AI behavior across the application
  */
 
+export interface prompt {
+	template: string;
+	examples?: string[];
+	guidelines?: string[];
+}
+
+export interface AIModel {
+	name: string;
+	description: string;
+	provider: "hackclub";
+}
+
 export interface AISettings {
 	models: {
-		main: {
-			name: string;
-			description: string;
-			provider: "hackclub";
-		};
-		light: {
-			name: string;
-			description: string;
-			provider: "hackclub";
-		};
+		main: AIModel;
+		light: AIModel;
 	};
 	flashcards: {
 		defaultCardCount: number | "auto";
@@ -29,22 +33,12 @@ export interface AISettings {
 		maxTopicLength: number;
 	};
 	prompts: {
-		deckName: {
-			template: string;
-			examples: string[];
-		};
-		deckDescription: {
-			template: string;
-			examples: string[];
-		};
-		cardCount: {
-			template: string;
-			examples: string[];
-		};
-		flashcardGeneration: {
-			template: string;
-			guidelines: string[];
-		};
+		deckName: prompt;
+		deckDescription: prompt;
+		cardCount: prompt;
+		flashcardGeneration: prompt;
+		flashcardGenerationFromNotes: prompt;
+		flashcardConversion: prompt;
 	};
 }
 
@@ -119,13 +113,16 @@ Examples:
 			],
 		},
 		cardCount: {
-			template: `Analyze this topic and determine the optimal number of flashcards needed for effective learning: "{topic}"
+			template: `Analyze this input and determine the optimal number of flashcards needed for effective learning: "{topic}"
 
 Consider:
 - Topic complexity and scope
 - Amount of information to cover
 - Optimal learning chunk size
 - Balance between comprehensive coverage and manageable study sessions
+- If the input is a set of questions, count them
+- If the input is a numbered list, use that number
+- If the input is notes or text, estimate based on content
 
 Provide a number between {minCount}-{maxCount} flashcards that would best serve a student learning this topic.
 
@@ -138,6 +135,8 @@ Examples:
 				"Comprehensive subject overview: 15-20 cards",
 				"Mathematical formulas: 6-10 cards",
 				"Language grammar rules: 10-15 cards",
+				"10 questions provided: 10 cards",
+				"Numbered list of 7 items: 7 cards",
 			],
 		},
 		flashcardGeneration: {
@@ -152,11 +151,68 @@ Each flashcard should have:
 
 Focus on key facts, definitions, concepts, and important details that someone studying this topic should know.`,
 			guidelines: [
+				"Preserve the primary language of the original topic. For example, if the topic is in Spanish, the flashcards should also be in Spanish.",
 				"Make sure the flashcards cover different aspects of the topic and progress from basic to more advanced concepts where appropriate",
 				"Use varied question types (definitions, examples, comparisons, applications)",
 				"Keep answers concise but informative",
 				"Include specific details and examples where helpful",
 				"Ensure each card tests a single concept or fact",
+			],
+		},
+		flashcardGenerationFromNotes: {
+			template: `Generate {cardCount} flashcards from the notes provided below.
+
+The user has provided their own notes and wants to convert them into a structured flashcard deck for studying.
+
+Notes:
+---
+{topic}
+---
+
+Each flashcard should have:
+- A clear, concise question or prompt on the front
+- A comprehensive but not overly long answer on the back
+
+{guidelines}
+
+Extract key facts, definitions, concepts, and important details from the notes to create the flashcards. Ensure the flashcards accurately reflect the information given in the notes.`,
+			guidelines: [
+				"Preserve the primary language of the original topic. For example, if the topic is in Spanish, the flashcards should also be in Spanish.",
+				"Focus on the most important pieces of information in the notes.",
+				"Create questions that test understanding of the provided material.",
+				"Ensure answers are directly supported by the content of the notes.",
+				"Do not introduce outside information not present in the notes.",
+				"Vary the question format to keep the deck engaging.",
+			],
+		},
+		flashcardConversion: {
+			template: `Convert the following text into {cardCount} flashcards.
+
+The user has provided text that may be a list of questions, a mix of questions and answers, or unstructured content. Your task is to reformat it into a clear, consistent flashcard format.
+
+Original Text:
+---
+{topic}
+---
+
+Each flashcard should have:
+- A clear, concise question or prompt on the front
+- A comprehensive but not overly long answer on the back
+
+Here are some guidelines to follow:
+{guidelines}
+
+
+
+Analyze the provided text and intelligently separate it into distinct questions and answers. If the text is already in a question/answer format, standardize it. If it's a block of text, extract key information to create questions.`,
+			guidelines: [
+				"Preserve the primary language of the original topic. For example, if the topic is in Spanish, the flashcards should also be in Spanish.",
+				"For fill-in-the-blank questions with an infinitive verb in parentheses, conjugate the verb correctly to fill in the blank. For example, for 'Il est possible qu’elle (faire) _______________ ses devoirs ce soir.', the answer should be 'fasse'.",
+				"Identify distinct question-answer pairs in the text.",
+				"If only questions are provided, generate appropriate answers.",
+				"If the text is unstructured, create meaningful questions and extract the answers.",
+				"Standardize the format for clarity and consistency.",
+				"Ensure the final flashcards are high-quality and ready for studying.",
 			],
 		},
 	},
@@ -221,7 +277,7 @@ export function getDifficultyOptions(): Array<{
  */
 export function buildDeckNamePrompt(topic: string): string {
 	const settings = getAISettings();
-	const examples = settings.prompts.deckName.examples
+	const examples = (settings.prompts.deckName.examples ?? [])
 		.map((ex) => `- ${ex}`)
 		.join("\n");
 
@@ -235,7 +291,7 @@ export function buildDeckNamePrompt(topic: string): string {
  */
 export function buildDeckDescriptionPrompt(topic: string): string {
 	const settings = getAISettings();
-	const examples = settings.prompts.deckDescription.examples
+	const examples = (settings.prompts.deckDescription.examples ?? [])
 		.map((ex) => `- ${ex}`)
 		.join("\n");
 
@@ -249,7 +305,7 @@ export function buildDeckDescriptionPrompt(topic: string): string {
  */
 export function buildCardCountPrompt(topic: string): string {
 	const settings = getAISettings();
-	const examples = settings.prompts.cardCount.examples
+	const examples = (settings.prompts.cardCount.examples ?? [])
 		.map((ex) => `- ${ex}`)
 		.join("\n");
 
@@ -268,7 +324,7 @@ export function buildFlashcardGenerationPrompt(
 	cardCount: number,
 ): string {
 	const settings = getAISettings();
-	const guidelines = settings.prompts.flashcardGeneration.guidelines
+	const guidelines = (settings.prompts.flashcardGeneration.guidelines ?? [])
 		.map((g) => `- ${g}`)
 		.join("\n");
 
@@ -276,4 +332,45 @@ export function buildFlashcardGenerationPrompt(
 		.replace("{topic}", topic)
 		.replace("{cardCount}", cardCount.toString())
 		.replace("{guidelines}", guidelines);
+}
+
+/**
+ * Build flashcard generation from notes prompt
+ */
+export function buildFlashcardGenerationFromNotesPrompt(
+	topic: string,
+	cardCount: number,
+): string {
+	const settings = getAISettings();
+	const guidelines = (settings.prompts.flashcardGenerationFromNotes.guidelines ?? [])
+		.map((g) => `- ${g}`)
+		.join("\n");
+
+	return settings.prompts.flashcardGenerationFromNotes.template
+		.replace("{topic}", topic)
+		.replace("{cardCount}", cardCount.toString())
+		.replace("{guidelines}", guidelines);
+}
+
+/**
+ * Build flashcard conversion prompt
+ */
+export function buildFlashcardConversionPrompt(
+	topic: string,
+	cardCount: number,
+): string {
+	const settings = getAISettings();
+	const guidelines = (settings.prompts.flashcardConversion.guidelines ?? [])
+		.map((g) => `- ${g}`)
+		.join("\n");
+		// Add examples
+	const examples = (settings.prompts.flashcardConversion.examples ?? [])
+		.map((ex) => `- ${ex}`)
+		.join("\n");
+
+	return settings.prompts.flashcardConversion.template
+		.replace("{topic}", topic)
+		.replace("{cardCount}", cardCount.toString())
+		.replace("{guidelines}", guidelines)
+		.replace("{examples}", examples);
 }

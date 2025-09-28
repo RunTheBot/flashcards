@@ -35,6 +35,7 @@ export function AIFlashcardsClient() {
 	const [difficulty, setDifficulty] = useState<
 		"beginner" | "intermediate" | "advanced"
 	>("intermediate");
+	const [mode, setMode] = useState<"topic" | "notes" | "converter">("topic");
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [generatedDeckName, setGeneratedDeckName] = useState<string>("");
 
@@ -50,6 +51,19 @@ export function AIFlashcardsClient() {
 		}
 	}, [aiSettings.data]);
 
+	const getPlaceholder = () => {
+		switch (mode) {
+			case "topic":
+				return "Describe the topic in detail. The AI will automatically create a deck name and generate flashcards. For example:\n\n'JavaScript fundamentals including variables, functions, arrays, objects, and basic DOM manipulation. Focus on ES6+ features like arrow functions, destructuring, and template literals.'\n\nor\n\n'The causes and major events of World War II, including key battles, political figures, and the impact on different countries. Cover both European and Pacific theaters.'";
+			case "notes":
+				return "Paste your notes here. The AI will extract key information and generate flashcards from them. For example:\n\n- The mitochondria is the powerhouse of the cell.\n- It generates most of the cell's supply of adenosine triphosphate (ATP).\n- ATP is used as a source of chemical energy.";
+			case "converter":
+				return "Paste your questions here, in any format. The AI will convert them into a structured flashcard deck. For example:\n\nWhat is the capital of France?\nParis\n\nWhat is 2 + 2?\n4";
+			default:
+				return "Describe what you want to study";
+		}
+	};
+
 	const handleGenerate = async () => {
 		if (!topic.trim()) {
 			toast.error("Please describe what you want to study");
@@ -64,6 +78,7 @@ export function AIFlashcardsClient() {
 			const result = await generateFlashcards.mutateAsync({
 				topic: topic.trim(),
 				count: cardCount === "auto" ? undefined : cardCount,
+				mode: mode,
 			});
 
 			await utils.flashcards.getDecks.invalidate();
@@ -129,16 +144,29 @@ export function AIFlashcardsClient() {
 									)}
 
 									<div className="space-y-2">
+										<Label htmlFor="mode">Generation Mode</Label>
+										<Select
+											value={mode}
+											onValueChange={(value: "topic" | "notes" | "converter") =>
+												setMode(value)
+											}
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="topic">From Topic</SelectItem>
+												<SelectItem value="notes">From Notes</SelectItem>
+												<SelectItem value="converter">Converter</SelectItem>
+											</SelectContent>
+										</Select>
+									</div>
+
+									<div className="space-y-2">
 										<Label htmlFor="topic">What do you want to study?</Label>
 										<Textarea
 											id="topic"
-											placeholder="Describe the topic in detail. The AI will automatically create a deck name and generate flashcards. For example:
-
-'JavaScript fundamentals including variables, functions, arrays, objects, and basic DOM manipulation. Focus on ES6+ features like arrow functions, destructuring, and template literals.'
-
-or
-
-'The causes and major events of World War II, including key battles, political figures, and the impact on different countries. Cover both European and Pacific theaters.'"
+											placeholder={getPlaceholder()}
 											value={topic}
 											onChange={(e) => setTopic(e.target.value)}
 											disabled={isGenerating}
