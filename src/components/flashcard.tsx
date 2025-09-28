@@ -5,6 +5,7 @@ import type React from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface FlashcardProps {
 	front: React.ReactNode;
@@ -39,6 +40,24 @@ export function Flashcard({
 		}
 	};
 
+	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		if (e.ctrlKey) {
+			e.preventDefault();
+			e.stopPropagation();
+			const frontText = (front as React.ReactElement)?.props?.children ?? front;
+			const backText = (back as React.ReactElement)?.props?.children ?? back;
+			const textToCopy = `Front:
+${frontText}
+
+Back:
+${backText}`;
+			navigator.clipboard.writeText(textToCopy);
+			toast.success("Flashcard content copied to clipboard!");
+		} else {
+			handleFlip();
+		}
+	};
+
 	return (
 		<div className={cn("perspective-1000 h-64 w-full", className)}>
 			<button
@@ -47,7 +66,7 @@ export function Flashcard({
 					"transform-style-preserve-3d relative h-full w-full cursor-pointer border-0 bg-transparent p-0 transition-transform duration-700",
 					isFlipped && "rotate-y-180",
 				)}
-				onClick={handleFlip}
+				onClick={handleClick}
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
