@@ -23,33 +23,91 @@ export function DecksClient() {
 	const utils = api.useUtils();
 	const { data: decks, isLoading } = api.flashcards.getDecks.useQuery();
 	const createDeck = api.flashcards.createDeck.useMutation({
-		onSuccess: async () => {
+		onMutate: async (newDeck) => {
+			// Cancel any outgoing refetches
+			await utils.flashcards.getDecks.cancel();
+			// Snapshot the previous value
+			const previousDecks = utils.flashcards.getDecks.getData();
+			// Optimistically update to the new value
+			utils.flashcards.getDecks.setData(undefined, (old) => [
+				...(old ?? []),
+				{
+					...newDeck,
+					id: `optimistic-${Date.now()}`,
+					studying: false,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					userId: "",
+					description: newDeck.description ?? null,
+				},
+			]);
+			// Return a context object with the snapshotted value
+			return { previousDecks };
+		},
+		onError: (err, newDeck, context) => {
+			// Rollback to the previous value if mutation fails
+			if (context?.previousDecks) {
+				utils.flashcards.getDecks.setData(undefined, context.previousDecks);
+			}
+			toast.error(`Failed to create deck: ${err.message}`);
+		},
+		onSettled: async () => {
 			await utils.flashcards.getDecks.invalidate();
 			setName("");
 			setDescription("");
+		},
+		onSuccess: () => {
 			toast.success("Deck created successfully!");
 		},
 	});
 
 	const deleteDeck = api.flashcards.deleteDeck.useMutation({
-		onSuccess: async () => {
+		onMutate: async ({ deckId }) => {
+			await utils.flashcards.getDecks.cancel();
+			const previousDecks = utils.flashcards.getDecks.getData();
+			utils.flashcards.getDecks.setData(undefined, (old) =>
+				old?.filter((deck) => deck.id !== deckId),
+			);
+			return { previousDecks };
+		},
+		onError: (err, newDeck, context) => {
+			if (context?.previousDecks) {
+				utils.flashcards.getDecks.setData(undefined, context.previousDecks);
+			}
+			toast.error(`Failed to delete deck: ${err.message}`);
+		},
+		onSettled: async () => {
 			await utils.flashcards.getDecks.invalidate();
 			setSelectedDeckId(null);
-			toast.success("Deck deleted successfully!");
 		},
-		onError: (error) => {
-			toast.error(`Failed to delete deck: ${error.message}`);
+		onSuccess: () => {
+			toast.success("Deck deleted successfully!");
 		},
 	});
 
 	const updateDeck = api.flashcards.updateDeck.useMutation({
-		onSuccess: async () => {
+		onMutate: async (updatedDeck) => {
+			await utils.flashcards.getDecks.cancel();
+			const previousDecks = utils.flashcards.getDecks.getData();
+			utils.flashcards.getDecks.setData(undefined, (old) =>
+				old?.map((deck) =>
+					deck.id === updatedDeck.deckId ? { ...deck, ...updatedDeck } : deck,
+				),
+			);
+			return { previousDecks };
+		},
+		onError: (err, newDeck, context) => {
+			if (context?.previousDecks) {
+				utils.flashcards.getDecks.setData(undefined, context.previousDecks);
+			}
+			toast.error(`Failed to update deck: ${err.message}`);
+		},
+		onSettled: async () => {
 			await utils.flashcards.getDecks.invalidate();
 			setEditingDeck(null);
-			toast.success("Deck updated successfully!");
 		},
-		onError: (error) => {
-			toast.error(`Failed to update deck: ${error.message}`);
+		onSuccess: () => {
+			toast.success("Deck updated successfully!");
 		},
 	});
 
@@ -366,33 +424,98 @@ function DeckDetail({ deckId }: { deckId: string }) {
 		deckId,
 	});
 	const createCard = api.flashcards.createCard.useMutation({
-		onSuccess: async () => {
-			await utils.flashcards.getCards.invalidate({ deckId });
+		onMutate: async (newCard) => {
+			await utils.flashcards.getCards.cancel({ deckId });
+			const previousCards = utils.flashcards.getCards.getData({ deckId });
+			utils.flashcards.getCards.setData({ deckId }, (old) => [
+				...(old ?? []),
+				{
+					...newCard,
+					id: `optimistic-${Date.now()}`,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					deckId: deckId,
+					userId: "",
+					reviewedAt: new Date(),
+					ivl: 0,
+					reps: 0,
+					lapses: 0,
+					ease: 0,
+					state: 0,
+					stability: 0,
+					difficulty: 0,
+					elapsed_days: 0,
+					scheduled_days: 0,
+					due: new Date(),
+					learning_steps: 0,
+					last_review: new Date(),
+				},
+			]);
 			setFront("");
 			setBack("");
-			toast.success("Card created successfully!");
+			return { previousCards };
 		},
-		onError: (error) => {
-			toast.error(`Failed to create card: ${error.message}`);
+		onError: (err, newCard, context) => {
+			if (context?.previousCards) {
+				utils.flashcards.getCards.setData({ deckId }, context.previousCards);
+			}
+			toast.error(`Failed to create card: ${err.message}`);
+		},
+		onSettled: async () => {
+			await utils.flashcards.getCards.invalidate({ deckId });
+		},
+		onSuccess: () => {
+			toast.success("Card created successfully!");
 		},
 	});
 	const updateCard = api.flashcards.updateCard.useMutation({
-		onSuccess: async () => {
-			await utils.flashcards.getCards.invalidate({ deckId });
-			toast.success("Card updated successfully!");
+		onMutate: async (updatedCard) => {
+			await utils.flashcards.getCards.cancel({ deckId });
+			const previousCards = utils.flashcards.getCards.getData({ deckId });
+			utils.flashcards.getCards.setData({ deckId }, (old) =>
+				old?.map((card) =>
+					card.id === updatedCard.cardId ? { ...card, ...updatedCard } : card,
+				),
+			);
+			setEditingCard(null);
+			setEditFront("");
+			setEditBack("");
+			return { previousCards };
 		},
-		onError: (error) => {
-			toast.error(`Failed to update card: ${error.message}`);
+		onError: (err, newCard, context) => {
+			if (context?.previousCards) {
+				utils.flashcards.getCards.setData({ deckId }, context.previousCards);
+			}
+			toast.error(`Failed to update card: ${err.message}`);
+		},
+		onSettled: async () => {
+			await utils.flashcards.getCards.invalidate({ deckId });
+		},
+		onSuccess: () => {
+			toast.success("Card updated successfully!");
 		},
 	});
 
 	const deleteCard = api.flashcards.deleteCard.useMutation({
-		onSuccess: async () => {
-			await utils.flashcards.getCards.invalidate({ deckId });
-			toast.success("Card deleted successfully!");
+		onMutate: async ({ cardId }) => {
+			await utils.flashcards.getCards.cancel({ deckId });
+			const previousCards = utils.flashcards.getCards.getData({ deckId });
+			utils.flashcards.getCards.setData({ deckId }, (old) =>
+				old?.filter((card) => card.id !== cardId),
+			);
+			return { previousCards };
 		},
-		onError: (error) => {
-			toast.error(`Failed to delete card: ${error.message}`);
+		onError: (err, newCard, context) => {
+			if (context?.previousCards) {
+				utils.flashcards.getCards.setData({ deckId }, context.previousCards);
+			}
+			toast.error(`Failed to delete card: ${err.message}`);
+		},
+		onSettled: async () => {
+			await utils.flashcards.getCards.invalidate({ deckId });
+		},
+		onSuccess: () => {
+			toast.success("Card deleted successfully!");
 		},
 	});
 
