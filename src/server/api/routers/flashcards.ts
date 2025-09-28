@@ -326,7 +326,16 @@ export const flashcardsRouter = createTRPCRouter({
 
 			// Get the rating for this review
 			const rating = mapUIRatingToFSRS(input.rating);
-{{ ... }}
+
+			// Get scheduling options for this review
+			const now = new Date();
+			const schedulingCards: RecordLog = fsrsScheduler.repeat(currentCard, now);
+
+			// Get the updated card and log for the selected rating
+			const selectedScheduling = schedulingCards[rating];
+			const updatedCard = selectedScheduling.card;
+			const reviewLog = selectedScheduling.log;
+
 			// Insert the review record
 			const [reviewRow] = await ctx.db
 				.insert(cardReviews)
@@ -338,7 +347,6 @@ export const flashcardsRouter = createTRPCRouter({
 				.returning();
 
 			// Update the card's state with new FSRS values
-{{ ... }}
 			await ctx.db
 				.update(cards)
 				.set({
@@ -372,9 +380,6 @@ export const flashcardsRouter = createTRPCRouter({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const session = await auth.api.getSession({ headers: ctx.headers });
-			if (!session) throw new Error("Unauthorized");
-
 			let deckId = input.deckId;
 
 			// If no deckId provided, create a new deck with auto-generated name and description
