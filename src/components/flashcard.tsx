@@ -4,7 +4,7 @@ import type React from "react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface FlashcardProps {
@@ -23,6 +23,8 @@ export function Flashcard({
 	isFlipped: controlledIsFlipped,
 }: FlashcardProps) {
 	const [internalIsFlipped, setInternalIsFlipped] = useState(false);
+	const frontRef = useRef<HTMLDivElement>(null);
+	const backRef = useRef<HTMLDivElement>(null);
 
 	// Use controlled state if provided, otherwise use internal state
 	const isFlipped =
@@ -44,8 +46,8 @@ export function Flashcard({
 		if (e.ctrlKey) {
 			e.preventDefault();
 			e.stopPropagation();
-			const frontText = (front as React.ReactElement)?.props?.children ?? front;
-			const backText = (back as React.ReactElement)?.props?.children ?? back;
+			const frontText = frontRef.current?.innerText ?? "";
+			const backText = backRef.current?.innerText ?? "";
 			const textToCopy = `Front:
 ${frontText}
 
@@ -70,12 +72,16 @@ ${backText}`;
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
-					<div className="whitespace-pre-wrap text-center">{front}</div>
+					<div ref={frontRef} className="whitespace-pre-wrap text-center">
+						{front}
+					</div>
 				</Card>
 
 				{/* Back of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground">
-					<div className="whitespace-pre-wrap text-center">{back}</div>
+					<div ref={backRef} className="whitespace-pre-wrap text-center">
+						{back}
+					</div>
 				</Card>
 			</button>
 		</div>
