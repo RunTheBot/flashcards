@@ -46,15 +46,12 @@ export function Flashcard({
 		if (e.ctrlKey) {
 			e.preventDefault();
 			e.stopPropagation();
-			const frontText = frontRef.current?.innerText ?? "";
-			const backText = backRef.current?.innerText ?? "";
-			const textToCopy = `Front:
-${frontText}
-
-Back:
-${backText}`;
+			const textToCopy = isFlipped
+				? (backRef.current?.innerText ?? "")
+				: (frontRef.current?.innerText ?? "");
+			const side = isFlipped ? "Back" : "Front";
 			navigator.clipboard.writeText(textToCopy);
-			toast.success("Flashcard content copied to clipboard!");
+			toast.success(`${side} of flashcard copied to clipboard!`);
 		} else {
 			handleFlip();
 		}
