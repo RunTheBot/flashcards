@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/trpc/react";
-import { BookOpen, Edit, Trash2 } from "lucide-react";
+import { BookOpen, Edit, Info, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -39,6 +39,12 @@ export function DecksClient() {
 					updatedAt: new Date(),
 					userId: "",
 					description: newDeck.description ?? null,
+					generationPrompt: null,
+					generationMode: null,
+					generationModel: null,
+					generationCardCount: null,
+					generationDifficulty: null,
+					isAIGenerated: false,
 				},
 			]);
 			// Return a context object with the snapshotted value
@@ -126,6 +132,18 @@ export function DecksClient() {
 	} | null>(null);
 	const [editDeckName, setEditDeckName] = useState("");
 	const [editDeckDescription, setEditDeckDescription] = useState("");
+	const [aiMetadataDialogOpen, setAiMetadataDialogOpen] = useState(false);
+	const [selectedAIMetadata, setSelectedAIMetadata] = useState<{
+		id: string;
+		name: string;
+		generationPrompt?: string | null;
+		generationMode?: string | null;
+		generationModel?: string | null;
+		generationCardCount?: number | null;
+		generationDifficulty?: string | null;
+		isAIGenerated?: boolean | null;
+		createdAt: Date;
+	} | null>(null);
 
 	const handleDeleteDeck = (
 		deck: { id: string; name: string },
@@ -179,6 +197,21 @@ export function DecksClient() {
 				studying: editingDeck.studying,
 			});
 		}
+	};
+
+	const showAIMetadata = (deck: {
+		id: string;
+		name: string;
+		generationPrompt?: string | null;
+		generationMode?: string | null;
+		generationModel?: string | null;
+		generationCardCount?: number | null;
+		generationDifficulty?: string | null;
+		isAIGenerated?: boolean | null;
+		createdAt: Date;
+	}) => {
+		setSelectedAIMetadata(deck);
+		setAiMetadataDialogOpen(true);
 	};
 
 	const canCreate = name.trim().length > 0;
@@ -304,6 +337,20 @@ export function DecksClient() {
 												>
 													<Edit className="h-4 w-4" />
 												</Button>
+												{d.isAIGenerated && (
+													<Button
+														variant="ghost"
+														size="icon"
+														className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+														onClick={(e) => {
+															e.stopPropagation();
+															showAIMetadata(d);
+														}}
+														title="View AI generation info"
+													>
+														<Info className="h-4 w-4" />
+													</Button>
+												)}
 												<Button
 													variant="ghost"
 													size="icon"
@@ -410,6 +457,92 @@ export function DecksClient() {
 							disabled={!editDeckName.trim() || updateDeck.isPending}
 						>
 							Save Changes
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			{/* AI Metadata dialog */}
+			<Dialog open={aiMetadataDialogOpen} onOpenChange={setAiMetadataDialogOpen}>
+				<DialogContent className="max-w-2xl">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Info className="h-5 w-5 text-blue-600" />
+							AI Generation Information
+						</DialogTitle>
+						<DialogDescription>
+							Details about how "{selectedAIMetadata?.name}" was generated using AI
+						</DialogDescription>
+					</DialogHeader>
+					<div className="grid gap-6 py-4">
+						<div className="grid gap-4">
+							<div className="grid gap-2">
+								<span className="font-medium text-sm">Generation Mode</span>
+								<div className="rounded-md bg-muted p-3 text-sm">
+									{selectedAIMetadata?.generationMode === "topic" 
+										? "Topic-based Generation" 
+										: selectedAIMetadata?.generationMode === "notes"
+										? "Notes Conversion"
+										: selectedAIMetadata?.generationMode === "converter"
+										? "Format Converter"
+										: "Unknown"
+									}
+								</div>
+							</div>
+							
+							{selectedAIMetadata?.generationModel && (
+								<div className="grid gap-2">
+									<span className="font-medium text-sm">AI Model</span>
+									<div className="rounded-md bg-muted p-3 text-sm">
+										{selectedAIMetadata.generationModel}
+									</div>
+								</div>
+							)}
+							
+							{selectedAIMetadata?.generationCardCount && (
+								<div className="grid gap-2">
+									<span className="font-medium text-sm">Target Card Count</span>
+									<div className="rounded-md bg-muted p-3 text-sm">
+										{selectedAIMetadata.generationCardCount} cards
+									</div>
+								</div>
+							)}
+							
+							{selectedAIMetadata?.generationDifficulty && (
+								<div className="grid gap-2">
+									<span className="font-medium text-sm">Difficulty Level</span>
+									<div className="rounded-md bg-muted p-3 text-sm capitalize">
+										{selectedAIMetadata.generationDifficulty}
+									</div>
+								</div>
+							)}
+							
+							{selectedAIMetadata?.generationPrompt && (
+								<div className="grid gap-2">
+									<span className="font-medium text-sm">Original Prompt</span>
+									<div className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded-md bg-muted p-3 text-sm">
+										{selectedAIMetadata.generationPrompt}
+									</div>
+								</div>
+							)}
+							
+							<div className="grid gap-2">
+								<span className="font-medium text-sm">Generated On</span>
+								<div className="rounded-md bg-muted p-3 text-sm">
+									{selectedAIMetadata?.createdAt?.toLocaleDateString("en-US", {
+										year: "numeric",
+										month: "long", 
+										day: "numeric",
+										hour: "2-digit",
+										minute: "2-digit"
+									})}
+								</div>
+							</div>
+						</div>
+					</div>
+					<DialogFooter>
+						<Button onClick={() => setAiMetadataDialogOpen(false)}>
+							Close
 						</Button>
 					</DialogFooter>
 				</DialogContent>

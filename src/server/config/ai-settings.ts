@@ -342,7 +342,9 @@ export function buildFlashcardGenerationFromNotesPrompt(
 	cardCount: number,
 ): string {
 	const settings = getAISettings();
-	const guidelines = (settings.prompts.flashcardGenerationFromNotes.guidelines ?? [])
+	const guidelines = (
+		settings.prompts.flashcardGenerationFromNotes.guidelines ?? []
+	)
 		.map((g) => `- ${g}`)
 		.join("\n");
 
@@ -363,7 +365,7 @@ export function buildFlashcardConversionPrompt(
 	const guidelines = (settings.prompts.flashcardConversion.guidelines ?? [])
 		.map((g) => `- ${g}`)
 		.join("\n");
-		// Add examples
+	// Add examples
 	const examples = (settings.prompts.flashcardConversion.examples ?? [])
 		.map((ex) => `- ${ex}`)
 		.join("\n");

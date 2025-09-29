@@ -570,6 +570,20 @@ export const flashcardsRouter = createTRPCRouter({
 				}
 			}
 
+			// Update the deck with AI generation metadata
+			await ctx.db
+				.update(decks)
+				.set({
+					generationPrompt: input.topic,
+					generationMode: input.mode,
+					generationModel: "GPT OSS 120B",
+					generationCardCount: cardCount,
+					generationDifficulty: "intermediate", // Could be made dynamic in the future
+					isAIGenerated: true,
+					updatedAt: new Date(),
+				})
+				.where(eq(decks.id, deckId));
+
 			console.log(
 				`Successfully generated ${generatedCards.length} flashcards using GPT OSS 120B`,
 			);
