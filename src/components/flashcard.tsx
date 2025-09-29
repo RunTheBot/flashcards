@@ -25,8 +25,8 @@ export function Flashcard({
 	const [internalIsFlipped, setInternalIsFlipped] = useState(false);
 	const frontRef = useRef<HTMLDivElement>(null);
 	const backRef = useRef<HTMLDivElement>(null);
-	const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
-	const isLongPressRef = useRef(false);
+	// const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+	// const isLongPressRef = useRef(false);
 
 	// Use controlled state if provided, otherwise use internal state
 	const isFlipped =
@@ -55,10 +55,10 @@ export function Flashcard({
 
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
 		// If it was a long press, don't flip the card
-		if (isLongPressRef.current) {
-			isLongPressRef.current = false;
-			return;
-		}
+		// if (isLongPressRef.current) {
+		// 	isLongPressRef.current = false;
+		// 	return;
+		// }
 
 		if (e.ctrlKey) {
 			e.preventDefault();
@@ -74,24 +74,24 @@ export function Flashcard({
 		copyCardContent();
 	};
 
-	const handlePointerDown = () => {
-		isLongPressRef.current = false;
-		longPressTimerRef.current = setTimeout(() => {
-			isLongPressRef.current = true;
-			copyCardContent();
-			// Add haptic feedback on mobile devices that support it
-			if ('vibrate' in navigator) {
-				navigator.vibrate(50);
-			}
-		}, 500); // 500ms for long press
-	};
+	// const handlePointerDown = () => {
+	// 	isLongPressRef.current = false;
+	// 	longPressTimerRef.current = setTimeout(() => {
+	// 		isLongPressRef.current = true;
+	// 		copyCardContent();
+	// 		// Add haptic feedback on mobile devices that support it
+	// 		if ('vibrate' in navigator) {
+	// 			navigator.vibrate(50);
+	// 		}
+	// 	}, 500); // 500ms for long press
+	// };
 
-	const handlePointerUp = () => {
-		if (longPressTimerRef.current) {
-			clearTimeout(longPressTimerRef.current);
-			longPressTimerRef.current = null;
-		}
-	};
+	// const handlePointerUp = () => {
+	// 	if (longPressTimerRef.current) {
+	// 		clearTimeout(longPressTimerRef.current);
+	// 		longPressTimerRef.current = null;
+	// 	}
+	// };
 
 	return (
 		<div className={cn("perspective-1000 h-64 w-full", className)}>
@@ -103,9 +103,9 @@ export function Flashcard({
 				)}
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
-				onPointerDown={handlePointerDown}
-				onPointerUp={handlePointerUp}
-				onPointerLeave={handlePointerUp}
+				// onPointerDown={handlePointerDown}
+				// onPointerUp={handlePointerUp}
+				// onPointerLeave={handlePointerUp}
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
