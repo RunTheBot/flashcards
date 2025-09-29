@@ -4,7 +4,7 @@ import type React from "react";
 
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
+import { useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
 
 interface FlashcardProps {
@@ -25,6 +25,8 @@ export function Flashcard({
 	const [internalIsFlipped, setInternalIsFlipped] = useState(false);
 	const frontRef = useRef<HTMLDivElement>(null);
 	const backRef = useRef<HTMLDivElement>(null);
+	const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+	const isLongPressRef = useRef(false);
 
 	// Use controlled state if provided, otherwise use internal state
 	const isFlipped =
@@ -42,18 +44,52 @@ export function Flashcard({
 		}
 	};
 
+	const copyCardContent = useCallback(() => {
+		const textToCopy = isFlipped
+			? (backRef.current?.innerText ?? "")
+			: (frontRef.current?.innerText ?? "");
+		const side = isFlipped ? "Back" : "Front";
+		navigator.clipboard.writeText(textToCopy);
+		toast.success(`${side} of flashcard copied to clipboard!`);
+	}, [isFlipped]);
+
 	const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		// If it was a long press, don't flip the card
+		if (isLongPressRef.current) {
+			isLongPressRef.current = false;
+			return;
+		}
+
 		if (e.ctrlKey) {
 			e.preventDefault();
 			e.stopPropagation();
-			const textToCopy = isFlipped
-				? (backRef.current?.innerText ?? "")
-				: (frontRef.current?.innerText ?? "");
-			const side = isFlipped ? "Back" : "Front";
-			navigator.clipboard.writeText(textToCopy);
-			toast.success(`${side} of flashcard copied to clipboard!`);
+			copyCardContent();
 		} else {
 			handleFlip();
+		}
+	};
+
+	const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.preventDefault();
+		copyCardContent();
+	};
+
+	const handlePointerDown = () => {
+		isLongPressRef.current = false;
+		longPressTimerRef.current = setTimeout(() => {
+			isLongPressRef.current = true;
+			copyCardContent();
+			// Add haptic feedback on mobile devices that support it
+			if ('vibrate' in navigator) {
+				navigator.vibrate(50);
+			}
+		}, 500); // 500ms for long press
+	};
+
+	const handlePointerUp = () => {
+		if (longPressTimerRef.current) {
+			clearTimeout(longPressTimerRef.current);
+			longPressTimerRef.current = null;
 		}
 	};
 
@@ -66,6 +102,10 @@ export function Flashcard({
 					isFlipped && "rotate-y-180",
 				)}
 				onClick={handleClick}
+				onContextMenu={handleContextMenu}
+				onPointerDown={handlePointerDown}
+				onPointerUp={handlePointerUp}
+				onPointerLeave={handlePointerUp}
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
