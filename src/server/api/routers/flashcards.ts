@@ -552,12 +552,24 @@ export const flashcardsRouter = createTRPCRouter({
 				prompt,
 			});
 
-			console.log("AI generation successful, inserting cards...");
+			console.log("AI generation successful, randomizing and inserting cards...");
+
+			// Randomize the order of flashcards to reduce predictability
+			const shuffledFlashcards = [...result.object.flashcards];
+			for (let i = shuffledFlashcards.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				const temp = shuffledFlashcards[i];
+				const swapItem = shuffledFlashcards[j];
+				if (temp && swapItem) {
+					shuffledFlashcards[i] = swapItem;
+					shuffledFlashcards[j] = temp;
+				}
+			}
 
 			// Insert generated flashcards into the database
 			const generatedCards = [];
 			if (deckId) {
-				for (const flashcard of result.object.flashcards) {
+				for (const flashcard of shuffledFlashcards) {
 					const [card] = await ctx.db
 						.insert(cards)
 						.values({
