@@ -111,6 +111,13 @@ export const decks = createTable("deck", {
 	userId: text("userId")
 		.notNull()
 		.references(() => user.id, { onDelete: "cascade" }),
+	// AI generation metadata
+	generationPrompt: text("generation_prompt"), // Store the original prompt used for generation
+	generationMode: text("generation_mode"), // "topic", "notes", or "converter"
+	generationModel: text("generation_model"), // The AI model used for generation
+	generationCardCount: integer("generation_card_count"), // The count setting used
+	generationDifficulty: text("generation_difficulty"), // The difficulty setting used
+	isAIGenerated: boolean("is_ai_generated").default(false), // Whether this deck was AI-generated
 	createdAt: timestamp("createdAt").notNull().defaultNow(),
 	updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 	studying: boolean("studying").notNull().default(false),
