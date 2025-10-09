@@ -12,6 +12,7 @@ interface FlashcardProps {
 	back: React.ReactNode;
 	className?: string;
 	onFlip?: (isFlipped: boolean) => void;
+	onFlipEnd?: (isFlipped: boolean) => void;
 	isFlipped?: boolean;
 }
 
@@ -20,6 +21,7 @@ export function Flashcard({
 	back,
 	className,
 	onFlip,
+	onFlipEnd,
 	isFlipped: controlledIsFlipped,
 }: FlashcardProps) {
 	const [internalIsFlipped, setInternalIsFlipped] = useState(false);
@@ -69,6 +71,13 @@ export function Flashcard({
 		}
 	};
 
+	const handleTransitionEnd = (e: React.TransitionEvent<HTMLButtonElement>) => {
+		// Only react to the 3D flip transform finishing
+		if (e.propertyName === "transform") {
+			onFlipEnd?.(isFlipped);
+		}
+	};
+
 	const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
 		copyCardContent();
@@ -103,6 +112,7 @@ export function Flashcard({
 				)}
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
+				onTransitionEnd={handleTransitionEnd}
 				// onPointerDown={handlePointerDown}
 				// onPointerUp={handlePointerUp}
 				// onPointerLeave={handlePointerUp}

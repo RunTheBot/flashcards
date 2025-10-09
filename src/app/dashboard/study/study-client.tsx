@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function StudyClient() {
 	const [isCardFlipped, setIsCardFlipped] = useState(false);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const searchParams = useSearchParams();
 	const deckId = searchParams.get("deckId");
 
@@ -36,18 +35,98 @@ export function StudyClient() {
 		deckId: deckId || undefined,
 	});
 
+	// Get the total count of due cards (not limited to 20)
+	const { data: totalDueCount, isLoading: isCountLoading } = api.flashcards.getDueCardCount.useQuery({
+		deckId: deckId || undefined,
+	});
+
 	const submit = api.flashcards.submitReview.useMutation({
-		onSuccess: async () => {
-			// Invalidate queue so next due card can appear
-			await utils.flashcards.getDailyQueue.invalidate();
+		onMutate: async ({ cardId }) => {
+			// Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+			await utils.flashcards.getDailyQueue.cancel({
+				limit: 20,
+				deckId: deckId || undefined,
+			});
+			await utils.flashcards.getDueCardCount.cancel({
+				deckId: deckId || undefined,
+			});
+
+			// Snapshot the previous values
+			const previousQueue = utils.flashcards.getDailyQueue.getData({
+				limit: 20,
+				deckId: deckId || undefined,
+			});
+			const previousCount = utils.flashcards.getDueCardCount.getData({
+				deckId: deckId || undefined,
+			});
+
+			// Optimistically update by removing the current card from the queue
+			utils.flashcards.getDailyQueue.setData(
+				{
+					limit: 20,
+					deckId: deckId || undefined,
+				},
+				(old) => {
+					if (!old) return old;
+					return old.filter((card) => card.id !== cardId);
+				},
+			);
+
+			// Optimistically decrease the due card count
+			utils.flashcards.getDueCardCount.setData(
+				{
+					deckId: deckId || undefined,
+				},
+				(old) => {
+					if (old === undefined) return old;
+					return Math.max(0, old - 1);
+				},
+			);
+
+			// Return a context object with the snapshotted values
+			return { previousQueue, previousCount };
+		},
+		onError: (err, newData, context) => {
+			// If the mutation fails, use the context returned from onMutate to roll back
+			if (context?.previousQueue) {
+				utils.flashcards.getDailyQueue.setData(
+					{
+						limit: 20,
+						deckId: deckId || undefined,
+					},
+					context.previousQueue,
+				);
+			}
+			if (context?.previousCount !== undefined) {
+				utils.flashcards.getDueCardCount.setData(
+					{
+						deckId: deckId || undefined,
+					},
+					context.previousCount,
+				);
+			}
+		},
+		onSettled: () => {
+			// Always refetch after error or success to ensure we have the latest data
+			utils.flashcards.getDailyQueue.invalidate({
+				limit: 20,
+				deckId: deckId || undefined,
+			});
+			utils.flashcards.getDueCardCount.invalidate({
+				deckId: deckId || undefined,
+			});
 		},
 	});
 
 	const current = useMemo(() => (queue?.[0] ? queue[0] : undefined), [queue]);
 
-	// Log the current card when it changes
+	// Hold a pending review rating until flip animation ends
+	const [pendingRating, setPendingRating] = useState<null | (1 | 2 | 3 | 4)>(null);
+
+	// Reset card flip state and log the current card when it changes
 	useEffect(() => {
 		if (current) {
+			setIsCardFlipped(false);
 			console.log("Current card loaded:", {
 				id: current.id,
 				front: current.front,
@@ -59,29 +138,34 @@ export function StudyClient() {
 		}
 	}, [current]);
 
+	// Instead of submitting immediately, set a pending rating and flip
 	const handleAnswer = useCallback(
-		async (rating: 1 | 2 | 3 | 4) => {
-			if (!current || isSubmitting) return;
-
-			setIsSubmitting(true);
-
-			// First flip back to front
+		(rating: 1 | 2 | 3 | 4) => {
+			if (!current) return;
+			// Set pending rating; the actual submit will occur on flip end
+			setPendingRating(rating);
+			// Flip card back to front to trigger the transition
 			setIsCardFlipped(false);
+		},
+		[current],
+	);
 
-			// Small delay to allow flip animation to complete
-			// await new Promise((resolve) => setTimeout(resolve, 10));
+	// Called when the flip transition ends on the Flashcard component
+	const handleFlipEnd = useCallback(
+		async (isFlipped: boolean) => {
+			// We only act when the card finished flipping back to the front
+			if (isFlipped) return;
+			if (!pendingRating || !current) return;
 
+			const rating = pendingRating;
+			setPendingRating(null);
 			try {
-				// Submit review; queue refetch will remove current card
 				await submit.mutateAsync({ cardId: current.id, rating });
 			} catch (error) {
-				console.error("Error submitting review:", error);
-				// Optionally show an error message to the user
-			} finally {
-				setIsSubmitting(false);
+				console.error("Error submitting review after flip:", error);
 			}
 		},
-		[current, isSubmitting, submit],
+		[pendingRating, current, submit],
 	);
 
 	useEffect(() => {
@@ -104,7 +188,7 @@ export function StudyClient() {
 		? `No cards due for review in "${deck.name}". Great job!`
 		: "No cards due right now. Great job!";
 
-	if (isLoading) return <div className="p-6">Loading...</div>;
+	if (isLoading || isCountLoading) return <div className="p-6">Loading...</div>;
 
 	return (
 		<div className="space-y-6">
@@ -115,7 +199,7 @@ export function StudyClient() {
 				)}
 			</div>
 
-			{!queue || queue.length === 0 ? (
+			{(!queue || queue.length === 0) && totalDueCount === 0 ? (
 				<Card className="p-6 text-center">
 					<p className="mb-4 text-muted-foreground">{emptyMessage}</p>
 					<div className="flex justify-center gap-2">
@@ -141,6 +225,7 @@ export function StudyClient() {
 						}
 						isFlipped={isCardFlipped}
 						onFlip={setIsCardFlipped}
+						onFlipEnd={handleFlipEnd}
 					/>
 
 					{!isCardFlipped && (
@@ -154,7 +239,6 @@ export function StudyClient() {
 							<Button
 								variant="destructive"
 								onClick={() => handleAnswer(1)}
-								disabled={isSubmitting}
 								title="1 - Again"
 							>
 								Again
@@ -163,14 +247,12 @@ export function StudyClient() {
 								variant="secondary"
 								onClick={() => handleAnswer(2)}
 								title="2 - Hard"
-								disabled={isSubmitting}
 							>
 								Hard
 							</Button>
 							<Button
 								onClick={() => handleAnswer(3)}
 								title="3 - Good"
-								disabled={isSubmitting}
 							>
 								Good
 							</Button>
@@ -178,7 +260,6 @@ export function StudyClient() {
 								variant="outline"
 								onClick={() => handleAnswer(4)}
 								title="4 - Easy"
-								disabled={isSubmitting}
 							>
 								Easy
 							</Button>
@@ -187,7 +268,12 @@ export function StudyClient() {
 
 					{/* Show progress info */}
 					<div className="text-center text-muted-foreground text-sm">
-						<p>Cards remaining: {queue.length}</p>
+						<p>
+							Cards remaining: {totalDueCount ?? 0}
+							{totalDueCount !== undefined && totalDueCount > 20 && (
+								<span className="text-xs"> (showing first 20)</span>
+							)}
+						</p>
 						{deck && allCards && <p>Total cards in deck: {allCards.length}</p>}
 						{deck && (
 							<Button variant="link" size="sm" asChild>

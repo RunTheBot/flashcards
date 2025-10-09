@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lte, max, or } from "drizzle-orm";
+import { and, count, desc, eq, isNull, lte, max, or } from "drizzle-orm";
 import { FSRS, Rating, createEmptyCard, generatorParameters } from "ts-fsrs";
 import type { Card, Grade, RecordLog, RecordLogItem } from "ts-fsrs";
 import { z } from "zod";
@@ -316,6 +316,45 @@ export const flashcardsRouter = createTRPCRouter({
 				.limit(input.limit);
 
 			return rows.map((r) => r.card);
+		}),
+
+	getDueCardCount: protectedProcedure
+		.input(
+			z
+				.object({
+					deckId: z.string().uuid().optional(),
+				})
+				.default({}),
+		)
+		.query(async ({ ctx, input }) => {
+			const now = new Date();
+
+			// Build where conditions
+			const whereConditions = [lte(cards.due, now)];
+
+			// If deckId is provided, add it to the where conditions
+			if (input.deckId) {
+				whereConditions.push(eq(cards.deckId, input.deckId));
+			} else {
+				whereConditions.push(eq(decks.studying, true));
+			}
+
+			// Count cards in user's decks that are due for review
+			const result = await ctx.db
+				.select({
+					count: count(),
+				})
+				.from(cards)
+				.innerJoin(
+					decks,
+					and(
+						eq(decks.id, cards.deckId),
+						eq(decks.userId, ctx.session.user.id),
+					),
+				)
+				.where(and(...whereConditions));
+
+			return result[0]?.count ?? 0;
 		}),
 
 	submitReview: protectedProcedure
