@@ -2,9 +2,10 @@
 
 import type React from "react";
 
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useRef, useState, useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface FlashcardProps {
@@ -124,15 +125,23 @@ export function Flashcard({
 			>
 				{/* Front of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
-					<div ref={frontRef} className="whitespace-pre-wrap text-center">
-						{front}
+					<div ref={frontRef} className="w-full overflow-auto text-center">
+						{typeof front === "string" ? (
+							<MarkdownRenderer content={front} />
+						) : (
+							front
+						)}
 					</div>
 				</Card>
 
 				{/* Back of card */}
 				<Card className="backface-hidden absolute inset-0 flex h-full w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground">
-					<div ref={backRef} className="whitespace-pre-wrap text-center">
-						{back}
+					<div ref={backRef} className="w-full overflow-auto text-center">
+						{typeof back === "string" ? (
+							<MarkdownRenderer content={back} />
+						) : (
+							back
+						)}
 					</div>
 				</Card>
 			</button>

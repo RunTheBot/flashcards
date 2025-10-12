@@ -42,9 +42,10 @@ export function StudyClient() {
 	});
 
 	// Get the total count of due cards (not limited to 20)
-	const { data: totalDueCount, isLoading: isCountLoading } = api.flashcards.getDueCardCount.useQuery({
-		deckId: deckIdParam,
-	});
+	const { data: totalDueCount, isLoading: isCountLoading } =
+		api.flashcards.getDueCardCount.useQuery({
+			deckId: deckIdParam,
+		});
 
 	const submit = api.flashcards.submitReview.useMutation({
 		onMutate: async ({ cardId }) => {
@@ -92,35 +93,35 @@ export function StudyClient() {
 			// Return a context object with the snapshotted values
 			return { previousQueue, previousCount };
 		},
-			onError: (err, newData, context) => {
+		onError: (err, newData, context) => {
 			// If the mutation fails, use the context returned from onMutate to roll back
 			if (context?.previousQueue) {
-					utils.flashcards.getDailyQueue.setData(
-						{
-							limit: LIMIT,
-							deckId: deckIdParam,
-						},
-						context.previousQueue,
-					);
+				utils.flashcards.getDailyQueue.setData(
+					{
+						limit: LIMIT,
+						deckId: deckIdParam,
+					},
+					context.previousQueue,
+				);
 			}
-				if (context?.previousCount !== undefined) {
-					utils.flashcards.getDueCardCount.setData(
-						{
-							deckId: deckIdParam,
-						},
-						context.previousCount,
-					);
-				}
+			if (context?.previousCount !== undefined) {
+				utils.flashcards.getDueCardCount.setData(
+					{
+						deckId: deckIdParam,
+					},
+					context.previousCount,
+				);
+			}
 		},
-			onSettled: () => {
+		onSettled: () => {
 			// Always refetch after error or success to ensure we have the latest data
-				utils.flashcards.getDailyQueue.invalidate({
-					limit: LIMIT,
-					deckId: deckIdParam,
-				});
-				utils.flashcards.getDueCardCount.invalidate({
-					deckId: deckIdParam,
-				});
+			utils.flashcards.getDailyQueue.invalidate({
+				limit: LIMIT,
+				deckId: deckIdParam,
+			});
+			utils.flashcards.getDueCardCount.invalidate({
+				deckId: deckIdParam,
+			});
 		},
 	});
 
@@ -128,9 +129,10 @@ export function StudyClient() {
 	const currentId = current?.id ?? null;
 
 	// Hold a pending review (cardId + rating) until flip animation ends
-	const [pendingReview, setPendingReview] = useState<
-		null | { cardId: string; rating: 1 | 2 | 3 | 4 }
-	>(null);
+	const [pendingReview, setPendingReview] = useState<null | {
+		cardId: string;
+		rating: 1 | 2 | 3 | 4;
+	}>(null);
 
 	// Reset card flip state and log the current card when it changes
 	useEffect(() => {
@@ -224,14 +226,8 @@ export function StudyClient() {
 				<div className="grid gap-4">
 					<Flashcard
 						className="mx-auto max-w-xl"
-						front={
-							<div className="whitespace-pre-wrap font-medium text-xl">
-								{current?.front}
-							</div>
-						}
-						back={
-							<div className="whitespace-pre-wrap text-lg">{current?.back}</div>
-						}
+						front={current?.front ?? ""}
+						back={current?.back ?? ""}
 						isFlipped={isCardFlipped}
 						onFlip={setIsCardFlipped}
 						onFlipEnd={handleFlipEnd}
@@ -279,8 +275,7 @@ export function StudyClient() {
 						</div>
 					)}
 
-					{/* Show progress info */
-					}
+					{/* Show progress info */}
 					<div className="text-center text-muted-foreground text-sm">
 						<p>
 							Cards remaining: {totalDueCount ?? 0}

@@ -1,5 +1,6 @@
 "use client";
 
+import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -463,7 +464,10 @@ export function DecksClient() {
 			</Dialog>
 
 			{/* AI Metadata dialog */}
-			<Dialog open={aiMetadataDialogOpen} onOpenChange={setAiMetadataDialogOpen}>
+			<Dialog
+				open={aiMetadataDialogOpen}
+				onOpenChange={setAiMetadataDialogOpen}
+			>
 				<DialogContent className="max-w-2xl">
 					<DialogHeader>
 						<DialogTitle className="flex items-center gap-2">
@@ -471,7 +475,8 @@ export function DecksClient() {
 							AI Generation Information
 						</DialogTitle>
 						<DialogDescription>
-							Details about how "{selectedAIMetadata?.name}" was generated using AI
+							Details about how "{selectedAIMetadata?.name}" was generated using
+							AI
 						</DialogDescription>
 					</DialogHeader>
 					<div className="grid gap-6 py-4">
@@ -479,17 +484,16 @@ export function DecksClient() {
 							<div className="grid gap-2">
 								<span className="font-medium text-sm">Generation Mode</span>
 								<div className="rounded-md bg-muted p-3 text-sm">
-									{selectedAIMetadata?.generationMode === "topic" 
-										? "Topic-based Generation" 
+									{selectedAIMetadata?.generationMode === "topic"
+										? "Topic-based Generation"
 										: selectedAIMetadata?.generationMode === "notes"
-										? "Notes Conversion"
-										: selectedAIMetadata?.generationMode === "converter"
-										? "Format Converter"
-										: "Unknown"
-									}
+											? "Notes Conversion"
+											: selectedAIMetadata?.generationMode === "converter"
+												? "Format Converter"
+												: "Unknown"}
 								</div>
 							</div>
-							
+
 							{selectedAIMetadata?.generationModel && (
 								<div className="grid gap-2">
 									<span className="font-medium text-sm">AI Model</span>
@@ -498,7 +502,7 @@ export function DecksClient() {
 									</div>
 								</div>
 							)}
-							
+
 							{selectedAIMetadata?.generationCardCount && (
 								<div className="grid gap-2">
 									<span className="font-medium text-sm">Target Card Count</span>
@@ -507,7 +511,7 @@ export function DecksClient() {
 									</div>
 								</div>
 							)}
-							
+
 							{selectedAIMetadata?.generationDifficulty && (
 								<div className="grid gap-2">
 									<span className="font-medium text-sm">Difficulty Level</span>
@@ -516,7 +520,7 @@ export function DecksClient() {
 									</div>
 								</div>
 							)}
-							
+
 							{selectedAIMetadata?.generationPrompt && (
 								<div className="grid gap-2">
 									<span className="font-medium text-sm">Original Prompt</span>
@@ -525,16 +529,16 @@ export function DecksClient() {
 									</div>
 								</div>
 							)}
-							
+
 							<div className="grid gap-2">
 								<span className="font-medium text-sm">Generated On</span>
 								<div className="rounded-md bg-muted p-3 text-sm">
 									{selectedAIMetadata?.createdAt?.toLocaleDateString("en-US", {
 										year: "numeric",
-										month: "long", 
+										month: "long",
 										day: "numeric",
 										hour: "2-digit",
-										minute: "2-digit"
+										minute: "2-digit",
 									})}
 								</div>
 							</div>
@@ -831,16 +835,16 @@ function DeckDetail({ deckId }: { deckId: string }) {
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Front
 												</div>
-												<div className="whitespace-pre-wrap font-medium">
-													{c.front}
+												<div className="font-medium">
+													<MarkdownRenderer content={c.front} />
 												</div>
 											</div>
 											<div>
 												<div className="mb-1 font-medium text-muted-foreground text-sm">
 													Back
 												</div>
-												<div className="whitespace-pre-wrap text-sm">
-													{c.back}
+												<div className="text-sm">
+													<MarkdownRenderer content={c.back} />
 												</div>
 											</div>
 										</div>

@@ -591,7 +591,9 @@ export const flashcardsRouter = createTRPCRouter({
 				prompt,
 			});
 
-			console.log("AI generation successful, randomizing and inserting cards...");
+			console.log(
+				"AI generation successful, randomizing and inserting cards...",
+			);
 
 			// Randomize the order of flashcards to reduce predictability
 			const shuffledFlashcards = [...result.object.flashcards];
