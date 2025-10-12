@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { hackclubLightModel, hackclubMainModel } from "@/lib/ai/hackclub";
 import { auth } from "@/lib/auth";
+import { processMarkdownImages } from "@/lib/cdn-upload";
 import {
 	createTRPCRouter,
 	protectedProcedure,
@@ -211,12 +212,16 @@ export const flashcardsRouter = createTRPCRouter({
 			});
 			if (!deckRow) throw new Error("Deck not found");
 
+			// Process markdown images - upload to CDN and replace URLs
+			const frontProcessed = await processMarkdownImages(input.front);
+			const backProcessed = await processMarkdownImages(input.back);
+
 			const [row] = await ctx.db
 				.insert(cards)
 				.values({
 					deckId: input.deckId,
-					front: input.front,
-					back: input.back,
+					front: frontProcessed,
+					back: backProcessed,
 				})
 				.returning();
 			return row;
@@ -245,9 +250,17 @@ export const flashcardsRouter = createTRPCRouter({
 			});
 			if (!deckRow) throw new Error("Forbidden");
 
+			// Process markdown images - upload to CDN and replace URLs
+			const frontProcessed = await processMarkdownImages(input.front);
+			const backProcessed = await processMarkdownImages(input.back);
+
 			const [row] = await ctx.db
 				.update(cards)
-				.set({ front: input.front, back: input.back, updatedAt: new Date() })
+				.set({
+					front: frontProcessed,
+					back: backProcessed,
+					updatedAt: new Date(),
+				})
 				.where(eq(cards.id, input.cardId))
 				.returning();
 			return row;
@@ -611,12 +624,16 @@ export const flashcardsRouter = createTRPCRouter({
 			const generatedCards = [];
 			if (deckId) {
 				for (const flashcard of shuffledFlashcards) {
+					// Process markdown images - upload to CDN and replace URLs
+					const frontProcessed = await processMarkdownImages(flashcard.front);
+					const backProcessed = await processMarkdownImages(flashcard.back);
+
 					const [card] = await ctx.db
 						.insert(cards)
 						.values({
 							deckId: deckId,
-							front: flashcard.front,
-							back: flashcard.back,
+							front: frontProcessed,
+							back: backProcessed,
 						})
 						.returning();
 					generatedCards.push(card);
