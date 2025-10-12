@@ -1,5 +1,6 @@
 "use client";
 
+import { ImagePasteTextarea } from "@/components/image-paste-textarea";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -728,11 +729,11 @@ function DeckDetail({ deckId }: { deckId: string }) {
 							<label htmlFor="card-front" className="font-medium text-sm">
 								Front
 							</label>
-							<Textarea
+							<ImagePasteTextarea
 								id="card-front"
-								placeholder="Enter the front of the card..."
+								placeholder="Enter the front of the card... (Paste images with Ctrl+V)"
 								value={front}
-								onChange={(e) => setFront(e.target.value)}
+								onChange={setFront}
 								className="min-h-[100px]"
 							/>
 						</div>
@@ -740,11 +741,11 @@ function DeckDetail({ deckId }: { deckId: string }) {
 							<label htmlFor="card-back" className="font-medium text-sm">
 								Back
 							</label>
-							<Textarea
+							<ImagePasteTextarea
 								id="card-back"
-								placeholder="Enter the back of the card..."
+								placeholder="Enter the back of the card... (Paste images with Ctrl+V)"
 								value={back}
-								onChange={(e) => setBack(e.target.value)}
+								onChange={setBack}
 								className="min-h-[100px]"
 							/>
 						</div>
@@ -778,11 +779,12 @@ function DeckDetail({ deckId }: { deckId: string }) {
 												>
 													Front
 												</label>
-												<Textarea
+												<ImagePasteTextarea
 													id={`edit-front-${c.id}`}
 													value={editFront}
-													onChange={(e) => setEditFront(e.target.value)}
+													onChange={setEditFront}
 													className="min-h-[80px]"
+													placeholder="Paste images with Ctrl+V"
 												/>
 											</div>
 											<div className="space-y-2">
@@ -792,11 +794,12 @@ function DeckDetail({ deckId }: { deckId: string }) {
 												>
 													Back
 												</label>
-												<Textarea
+												<ImagePasteTextarea
 													id={`edit-back-${c.id}`}
 													value={editBack}
-													onChange={(e) => setEditBack(e.target.value)}
+													onChange={setEditBack}
 													className="min-h-[80px]"
+													placeholder="Paste images with Ctrl+V"
 												/>
 											</div>
 										</div>
