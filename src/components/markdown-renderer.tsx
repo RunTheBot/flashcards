@@ -67,6 +67,13 @@ export function MarkdownRenderer({
 						<strong className="font-bold">{children}</strong>
 					),
 					em: ({ children }) => <em className="italic">{children}</em>,
+					img: ({ src, alt }) => (
+						<img
+							src={src}
+							alt={alt}
+							className="mx-auto my-2 max-h-96 w-auto rounded-lg object-contain shadow-md"
+						/>
+					),
 				}}
 			>
 				{content}

@@ -5,7 +5,7 @@ import type React from "react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 interface FlashcardProps {
@@ -26,6 +26,7 @@ export function Flashcard({
 	isFlipped: controlledIsFlipped,
 }: FlashcardProps) {
 	const [internalIsFlipped, setInternalIsFlipped] = useState(false);
+	const [cardHeight, setCardHeight] = useState<number>(0);
 	const frontRef = useRef<HTMLDivElement>(null);
 	const backRef = useRef<HTMLDivElement>(null);
 	// const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -34,6 +35,25 @@ export function Flashcard({
 	// Use controlled state if provided, otherwise use internal state
 	const isFlipped =
 		controlledIsFlipped !== undefined ? controlledIsFlipped : internalIsFlipped;
+
+	// Calculate and sync the height of both cards
+	useEffect(() => {
+		const updateHeight = () => {
+			const frontHeight = frontRef.current?.scrollHeight || 0;
+			const backHeight = backRef.current?.scrollHeight || 0;
+			const maxHeight = Math.max(frontHeight, backHeight, 256); // 256px = min-h-64
+			setCardHeight(maxHeight);
+		};
+
+		updateHeight();
+
+		// Use ResizeObserver to update height when content changes
+		const resizeObserver = new ResizeObserver(updateHeight);
+		if (frontRef.current) resizeObserver.observe(frontRef.current);
+		if (backRef.current) resizeObserver.observe(backRef.current);
+
+		return () => resizeObserver.disconnect();
+	}, []);
 
 	const handleFlip = () => {
 		const newFlippedState = !isFlipped;
@@ -116,6 +136,7 @@ export function Flashcard({
 					"transform-style-preserve-3d relative w-full cursor-pointer border-0 bg-transparent p-0 transition-transform duration-700",
 					isFlipped && "rotate-y-180",
 				)}
+				style={{ height: cardHeight > 0 ? `${cardHeight}px` : 'auto' }}
 				onClick={handleClick}
 				onContextMenu={handleContextMenu}
 				onTransitionEnd={handleTransitionEnd}
@@ -124,10 +145,7 @@ export function Flashcard({
 				// onPointerLeave={handlePointerUp}
 			>
 				{/* Front of card */}
-				<Card className={cn(
-					"backface-hidden flex min-h-64 w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50",
-					isFlipped && "absolute inset-0"
-				)}>
+				<Card className="backface-hidden absolute inset-0 flex w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
 					<div ref={frontRef} className="w-full text-center">
 						{typeof front === "string" ? (
 							<MarkdownRenderer content={front} />
@@ -138,10 +156,7 @@ export function Flashcard({
 				</Card>
 
 				{/* Back of card */}
-				<Card className={cn(
-					"backface-hidden flex min-h-64 w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground",
-					!isFlipped && "absolute inset-0"
-				)}>
+				<Card className="backface-hidden absolute inset-0 flex w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground">
 					<div ref={backRef} className="w-full text-center">
 						{typeof back === "string" ? (
 							<MarkdownRenderer content={back} />
