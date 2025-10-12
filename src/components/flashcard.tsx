@@ -71,11 +71,16 @@ export function Flashcard({
 		}
 	};
 
+	const lastFlipEndRef = useRef<number>(0);
 	const handleTransitionEnd = (e: React.TransitionEvent<HTMLButtonElement>) => {
-		// Only react to the 3D flip transform finishing
-		if (e.propertyName === "transform") {
-			onFlipEnd?.(isFlipped);
-		}
+		// Only react to the 3D flip transform finishing on the button itself
+		if (e.currentTarget !== e.target) return;
+		if (e.propertyName !== "transform") return;
+		// Debounce multiple transitionend events occurring in quick succession
+		const now = Date.now();
+		if (now - lastFlipEndRef.current < 50) return;
+		lastFlipEndRef.current = now;
+		onFlipEnd?.(isFlipped);
 	};
 
 	const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
