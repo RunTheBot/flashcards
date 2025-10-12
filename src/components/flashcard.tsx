@@ -109,11 +109,11 @@ export function Flashcard({
 	// };
 
 	return (
-		<div className={cn("perspective-1000 h-64 w-full", className)}>
+		<div className={cn("perspective-1000 w-full", className)}>
 			<button
 				type="button"
 				className={cn(
-					"transform-style-preserve-3d relative h-full w-full cursor-pointer border-0 bg-transparent p-0 transition-transform duration-700",
+					"transform-style-preserve-3d relative w-full cursor-pointer border-0 bg-transparent p-0 transition-transform duration-700",
 					isFlipped && "rotate-y-180",
 				)}
 				onClick={handleClick}
@@ -124,8 +124,11 @@ export function Flashcard({
 				// onPointerLeave={handlePointerUp}
 			>
 				{/* Front of card */}
-				<Card className="backface-hidden absolute inset-0 flex h-full w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50">
-					<div ref={frontRef} className="w-full overflow-auto text-center">
+				<Card className={cn(
+					"backface-hidden flex min-h-64 w-full items-center justify-center bg-card p-6 transition-colors hover:bg-accent/50",
+					isFlipped && "absolute inset-0"
+				)}>
+					<div ref={frontRef} className="w-full text-center">
 						{typeof front === "string" ? (
 							<MarkdownRenderer content={front} />
 						) : (
@@ -135,8 +138,11 @@ export function Flashcard({
 				</Card>
 
 				{/* Back of card */}
-				<Card className="backface-hidden absolute inset-0 flex h-full w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground">
-					<div ref={backRef} className="w-full overflow-auto text-center">
+				<Card className={cn(
+					"backface-hidden flex min-h-64 w-full rotate-y-180 items-center justify-center bg-primary p-6 text-primary-foreground",
+					!isFlipped && "absolute inset-0"
+				)}>
+					<div ref={backRef} className="w-full text-center">
 						{typeof back === "string" ? (
 							<MarkdownRenderer content={back} />
 						) : (
