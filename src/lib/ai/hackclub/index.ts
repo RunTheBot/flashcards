@@ -1,12 +1,13 @@
+import { env } from "@/env";
 import { createGroq } from "@ai-sdk/groq";
+import { e } from "node_modules/better-auth/dist/shared/better-auth.C6qXK08w";
 
 /**
  * Hack Club AI provider using Groq SDK
  * This is a Groq proxy service that provides free AI models
  */
 export const hackclub = createGroq({
-	baseURL: "https://ai.hackclub.com",
-	apiKey: "sk-dummy", // Some services require a key format
+	apiKey: env.PROVIDER_API_KEY || "",
 });
 
 /**

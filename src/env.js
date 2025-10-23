@@ -18,6 +18,7 @@ export const env = createEnv({
 		GOOGLE_CLIENT_ID: z.string().optional(),
 		GOOGLE_CLIENT_SECRET: z.string().optional(),
 		HACKCLUB_CDN_TOKEN: z.string().optional(),
+		PROVIDER_API_KEY: z.string().optional(),
 	},
 
 	/**
@@ -47,6 +48,7 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 		HACKCLUB_CDN_TOKEN: process.env.HACKCLUB_CDN_TOKEN,
 		NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
+		PROVIDER_API_KEY: process.env.PROVIDER_API_KEY,
 	},
 	/**
 	 * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
